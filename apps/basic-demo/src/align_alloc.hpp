@@ -26,6 +26,8 @@ SOFTWARE.
 #pragma once
 
 #include <cinttypes>
+#include <stddef.h>
+
 
 uint8_t *alignedAlloc(const size_t size);
 bool alignedFree(void *memory);

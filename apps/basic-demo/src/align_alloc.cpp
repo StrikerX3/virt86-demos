@@ -25,12 +25,16 @@ SOFTWARE.
 */
 #include "align_alloc.hpp"
 
+#include "virt86/vp/vp.hpp"
+
 #if defined(_WIN32)
 #  include <Windows.h>
 #elif defined(__linux__)
 #  include <stdlib.h>
 #elif defined(__APPLE__)
 #  include <stdlib.h>
+#else
+#  error Unsupported platform
 #endif
 
 uint8_t *alignedAlloc(const size_t size) {
@@ -40,16 +44,31 @@ uint8_t *alignedAlloc(const size_t size) {
         return NULL;
     }
     return (uint8_t *)VirtualAlloc(mem, size, MEM_COMMIT, PAGE_READWRITE);
-#else
+#elif defined(__linux__)
     return (uint8_t *)aligned_alloc(PAGE_SIZE, size);
+#elif defined(__APPLE__)
+    // Allocate memory with room to keep track of the original pointer
+    void *mem = malloc(size + (PAGE_SIZE - 1) + sizeof(void*));
+
+    // Get aligned address
+    uint8_t *alignedMem = ((uint8_t *)mem + sizeof(void*));
+    alignedMem += PAGE_SIZE - ((uintptr_t)alignedMem & (PAGE_SIZE - 1));
+
+    // Write pointer to original memory block just before the aligned memory block
+    ((void **)alignedMem)[-1] = mem;
+
+    return alignedMem;
 #endif
 }
 
 bool alignedFree(void *memory) {
 #if defined(_WIN32)
     return VirtualFree(memory, 0, MEM_RELEASE) == TRUE;
-#else
+#elif defined(__linux__)
     free(memory);
+    return true;
+#elif defined(__APPLE__)
+    free(((void **)memory)[-1]);
     return true;
 #endif
 }

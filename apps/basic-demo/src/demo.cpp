@@ -507,7 +507,9 @@ int main() {
     case MemoryMappingStatus::MisalignedSize: printf("failed: size is misaligned\n"); return -1;
     case MemoryMappingStatus::EmptyRange: printf("failed: size is zero\n"); return -1;
     case MemoryMappingStatus::AlreadyAllocated: printf("failed: host memory block is already allocated\n"); return -1;
+    case MemoryMappingStatus::InvalidFlags: printf("failed: invalid flags supplied\n"); return -1;
     case MemoryMappingStatus::Failed: printf("failed\n"); return -1;
+    default: printf("failed: unhandled reason (%d)\n", static_cast<int>(memMapStatus)); return -1;
     }
 
     // Map RAM to the bottom of the 32-bit address range
@@ -521,7 +523,9 @@ int main() {
     case MemoryMappingStatus::MisalignedSize: printf("failed: size is misaligned\n"); return -1;
     case MemoryMappingStatus::EmptyRange: printf("failed: size is zero\n"); return -1;
     case MemoryMappingStatus::AlreadyAllocated: printf("failed: host memory block is already allocated\n"); return -1;
+    case MemoryMappingStatus::InvalidFlags: printf("failed: invalid flags supplied\n"); return -1;
     case MemoryMappingStatus::Failed: printf("failed\n"); return -1;
+    default: printf("failed: unhandled reason (%d)\n", static_cast<int>(memMapStatus)); return -1;
     }
 
     // Get the virtual processor
