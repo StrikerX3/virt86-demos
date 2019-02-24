@@ -428,6 +428,12 @@ int main() {
     printf("  Partial unmapping: %s\n", (features.partialUnmapping) ? "supported" : "unsuported");
     printf("  Partial MMIO instructions: %s\n", (features.partialMMIOInstructions) ? "yes" : "no");
     printf("  Custom CPUID results: %s\n", (features.customCPUIDs) ? "supported" : "unsupported");
+    if (features.customCPUIDs) {
+        printf("       Function        EAX         EBX         ECX         EDX\n");
+        for (auto it = features.supportedCustomCPUIDs.begin(); it != features.supportedCustomCPUIDs.end(); it++) {
+            printf("      0x%08x = 0x%08x  0x%08x  0x%08x  0x%08x\n", it->function, it->eax, it->ebx, it->ecx, it->edx);
+        }
+    }
     printf("  Floating point extensions:");
     auto fpExts = BitmaskEnum(features.floatingPointExtensions);
     if (!fpExts) printf(" None");
@@ -486,7 +492,7 @@ int main() {
     vmSpecs.numProcessors = 1;
     vmSpecs.extendedVMExits = ExtendedVMExit::CPUID;
     vmSpecs.vmExitCPUIDFunctions.push_back(0);
-    vmSpecs.CPUIDResults.push_back(CPUIDResult{ 0x80000002, 'vupc', ' tri', 'UPCV', '    ' });
+    vmSpecs.CPUIDResults.emplace_back(0x80000002, 'vupc', ' tri', 'UPCV', '    ');
     printf("Creating virtual machine... ");
     auto opt_vm = platform.CreateVM(vmSpecs);
     if (!opt_vm) {
