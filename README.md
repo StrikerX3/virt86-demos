@@ -41,6 +41,18 @@ cmake ..
 make
 ```
 
+### Building on Mac OS X
+
+Install [brew](https://brew.sh/) if you haven't already. The default installation is sufficient. Xcode is not needed to compile the library -- virt86 demos can be compiled with the Xcode command line tools included with brew.
+
+```bash
+git clone https://github.com/StrikerX3/virt86-demos.git
+cd virt86-demos
+mkdir build; cd build
+cmake ..
+make
+```
+
 ## Support
 
 You can support [the author](https://github.com/StrikerX3) on [Patreon](https://www.patreon.com/StrikerX3).
