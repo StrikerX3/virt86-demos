@@ -29,5 +29,5 @@ SOFTWARE.
 #include <stddef.h>
 
 
-uint8_t *alignedAlloc(const size_t size);
-bool alignedFree(void *memory);
+uint8_t *alignedAlloc(const size_t size) noexcept;
+bool alignedFree(void *memory) noexcept;

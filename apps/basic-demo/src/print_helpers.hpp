@@ -29,8 +29,8 @@ SOFTWARE.
 
 #include <cstdint>
 
-void printRegs(virt86::VirtualProcessor& vp);
-void printFPRegs(virt86::VirtualProcessor& vp);
-void printSSERegs(virt86::VirtualProcessor& vp);
-void printDirtyBitmap(virt86::VirtualMachine& vm, uint64_t baseAddress, uint64_t numPages);
-void printAddressTranslation(virt86::VirtualProcessor& vp, const uint64_t addr);
+void printRegs(virt86::VirtualProcessor& vp) noexcept;
+void printFPRegs(virt86::VirtualProcessor& vp) noexcept;
+void printSSERegs(virt86::VirtualProcessor& vp) noexcept;
+void printDirtyBitmap(virt86::VirtualMachine& vm, uint64_t baseAddress, uint64_t numPages) noexcept;
+void printAddressTranslation(virt86::VirtualProcessor& vp, const uint64_t addr) noexcept;

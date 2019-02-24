@@ -39,7 +39,7 @@ do { \
     if (flags & prefix##_##flag) printf(" " #flag); \
 } while (0)
 
-void printRFLAGSBits(uint64_t rflags) {
+void printRFLAGSBits(uint64_t rflags) noexcept {
     PRINT_FLAG(rflags, RFLAGS, CF);
     PRINT_FLAG(rflags, RFLAGS, PF);
     PRINT_FLAG(rflags, RFLAGS, AF);
@@ -56,11 +56,11 @@ void printRFLAGSBits(uint64_t rflags) {
     PRINT_FLAG(rflags, RFLAGS, VIF);
     PRINT_FLAG(rflags, RFLAGS, VIP);
     PRINT_FLAG(rflags, RFLAGS, ID);
-    uint8_t iopl = (rflags & RFLAGS_IOPL) >> RFLAGS_IOPL_SHIFT;
+    const uint8_t iopl = (rflags & RFLAGS_IOPL) >> RFLAGS_IOPL_SHIFT;
     printf(" IOPL=%u", iopl);
 }
 
-void printEFERBits(uint64_t efer) {
+void printEFERBits(uint64_t efer) noexcept {
     PRINT_FLAG(efer, EFER, SCE);
     PRINT_FLAG(efer, EFER, LME);
     PRINT_FLAG(efer, EFER, LMA);
@@ -71,7 +71,7 @@ void printEFERBits(uint64_t efer) {
     PRINT_FLAG(efer, EFER, TCE);
 }
 
-void printCR0Bits(uint64_t cr0) {
+void printCR0Bits(uint64_t cr0) noexcept {
     PRINT_FLAG(cr0, CR0, PE);
     PRINT_FLAG(cr0, CR0, MP);
     PRINT_FLAG(cr0, CR0, EM);
@@ -85,7 +85,7 @@ void printCR0Bits(uint64_t cr0) {
     PRINT_FLAG(cr0, CR0, PG);
 }
 
-void printCR4Bits(uint64_t cr4) {
+void printCR4Bits(uint64_t cr4) noexcept {
     PRINT_FLAG(cr4, CR4, VME);
     PRINT_FLAG(cr4, CR4, PVI);
     PRINT_FLAG(cr4, CR4, TSD);
@@ -106,12 +106,12 @@ void printCR4Bits(uint64_t cr4) {
     PRINT_FLAG(cr4, CR4, SMAP);
 }
 
-void printCR8Bits(uint64_t cr8) {
-    uint8_t tpr = cr8 & CR8_TPR;
-    printf(" TPR=%d", tpr);
+void printCR8Bits(uint64_t cr8) noexcept {
+    const uint8_t tpr = cr8 & CR8_TPR;
+    printf(" TPR=%u", tpr);
 }
 
-void printXCR0Bits(uint64_t xcr0) {
+void printXCR0Bits(uint64_t xcr0) noexcept {
     PRINT_FLAG(xcr0, XCR0, FP);
     PRINT_FLAG(xcr0, XCR0, SSE);
     PRINT_FLAG(xcr0, XCR0, AVX);
@@ -123,14 +123,14 @@ void printXCR0Bits(uint64_t xcr0) {
     PRINT_FLAG(xcr0, XCR0, PKRU);
 }
 
-void printDR6Bits(uint64_t dr6) {
+void printDR6Bits(uint64_t dr6) noexcept {
     PRINT_FLAG(dr6, DR6, BP0);
     PRINT_FLAG(dr6, DR6, BP1);
     PRINT_FLAG(dr6, DR6, BP2);
     PRINT_FLAG(dr6, DR6, BP3);
 }
 
-void printDR7Bits(uint64_t dr7) {
+void printDR7Bits(uint64_t dr7) noexcept {
     for (uint8_t i = 0; i < 4; i++) {
         if (dr7 & (DR7_LOCAL(i) | DR7_GLOBAL(i))) {
             printf(" BP%u[", i);
@@ -138,7 +138,7 @@ void printDR7Bits(uint64_t dr7) {
             if (dr7 & DR7_LOCAL(i)) printf("L");
             if (dr7 & DR7_GLOBAL(i)) printf("G");
 
-            uint8_t size = (dr7 & DR7_SIZE(i)) >> DR7_SIZE_SHIFT(i);
+            const uint8_t size = (dr7 & DR7_SIZE(i)) >> DR7_SIZE_SHIFT(i);
             switch (size) {
             case DR7_SIZE_BYTE: printf(" byte"); break;
             case DR7_SIZE_WORD: printf(" word"); break;
@@ -146,7 +146,7 @@ void printDR7Bits(uint64_t dr7) {
             case DR7_SIZE_DWORD: printf(" dword"); break;
             }
 
-            uint8_t cond = (dr7 & DR7_COND(i)) >> DR7_COND_SHIFT(i);
+            const uint8_t cond = (dr7 & DR7_COND(i)) >> DR7_COND_SHIFT(i);
             switch (cond) {
             case DR7_COND_EXEC: printf(" exec"); break;
             case DR7_COND_WIDTH8: printf(" width8"); break;
@@ -160,7 +160,7 @@ void printDR7Bits(uint64_t dr7) {
 }
 #undef PRINT_FLAG
 
-void printRegs(VirtualProcessor& vp) {
+void printRegs(VirtualProcessor& vp) noexcept {
 #define READREG(code, name) RegValue name; vp.RegRead(code, name);
     READREG(Reg::RAX, rax); READREG(Reg::RCX, rcx); READREG(Reg::RDX, rdx); READREG(Reg::RBX, rbx);
     READREG(Reg::RSP, rsp); READREG(Reg::RBP, rbp); READREG(Reg::RSI, rsi); READREG(Reg::RDI, rdi);
@@ -183,7 +183,7 @@ void printRegs(VirtualProcessor& vp) {
     READREG(Reg::DR3, dr3); READREG(Reg::DR7, dr7);
 #undef READREG
   
-    auto extendedRegs = BitmaskEnum(vp.GetVirtualMachine().GetPlatform().GetFeatures().extendedControlRegisters);
+    const auto extendedRegs = BitmaskEnum(vp.GetVirtualMachine().GetPlatform().GetFeatures().extendedControlRegisters);
 
     printf(" RAX = %016" PRIx64 "   RCX = %016" PRIx64 "   RDX = %016" PRIx64 "   RBX = %016" PRIx64 "\n", rax.u64, rcx.u64, rdx.u64, rbx.u64);
     printf(" RSP = %016" PRIx64 "   RBP = %016" PRIx64 "   RSI = %016" PRIx64 "   RDI = %016" PRIx64 "\n", rsp.u64, rbp.u64, rsi.u64, rdi.u64);
@@ -219,7 +219,7 @@ void printRegs(VirtualProcessor& vp) {
     printf(" DR3 = %016" PRIx64 "   DR7 = %016" PRIx64 "", dr3.u64, dr7.u64); printDR7Bits(dr7.u64); printf("\n");
 }
 
-void printFPRegs(VirtualProcessor& vp) {
+void printFPRegs(VirtualProcessor& vp) noexcept {
     FPUControl fpuCtl;
     auto status = vp.GetFPUControl(fpuCtl);
     if (status != VPOperationStatus::OK) {
@@ -246,20 +246,20 @@ void printFPRegs(VirtualProcessor& vp) {
         printf("ST(%d) = %016" PRIx64 " %04x\n", i, values[i].st.significand, values[i].st.exponentSign);
     }
     
-    RegValue *mmValues = &values[8];
+    const RegValue *mmValues = &values[8];
     for (int i = 0; i < 8; i++) {
         printf("MM%d = %016" PRIx64 "\n", i, mmValues[i].mm.i64[0]);
     }
 }
 
-void printSSERegs(VirtualProcessor& vp) {
+void printSSERegs(VirtualProcessor& vp) noexcept {
     MXCSR mxcsr, mxcsrMask;
     auto status = vp.GetMXCSR(mxcsr);
     if (status != VPOperationStatus::OK) {
         printf("Failed to retrieve MMX control/status registers\n");
     }
 
-    auto extCRs = BitmaskEnum(vp.GetVirtualMachine().GetPlatform().GetFeatures().extendedControlRegisters);
+    const auto extCRs = BitmaskEnum(vp.GetVirtualMachine().GetPlatform().GetFeatures().extendedControlRegisters);
     if (extCRs.AnyOf(ExtendedControlRegister::MXCSRMask)) {
         status = vp.GetMXCSRMask(mxcsrMask);
         if (status != VPOperationStatus::OK) {
@@ -274,7 +274,7 @@ void printSSERegs(VirtualProcessor& vp) {
 
     auto caps = vp.GetVirtualMachine().GetPlatform().GetFeatures();
     uint8_t numXMM = 0;
-    auto fpExts = BitmaskEnum(caps.floatingPointExtensions);
+    const auto fpExts = BitmaskEnum(caps.floatingPointExtensions);
     if (fpExts.AnyOf(FloatingPointExtension::SSE2)) {
         numXMM = 8;
     }
@@ -288,12 +288,12 @@ void printSSERegs(VirtualProcessor& vp) {
         RegValue value;
         status = vp.RegRead(RegAdd(Reg::XMM0, i), value);
         if (status != VPOperationStatus::OK) {
-            printf("Failed to read register XMM%d\n", i);
+            printf("Failed to read register XMM%u\n", i);
             continue;
         }
 
-        auto& v = value.xmm;
-        printf("XMM%-2d = %016" PRIx64 "  %016" PRIx64 "\n", i, v.i64[0], v.i64[1]);
+        const auto& v = value.xmm;
+        printf("XMM%-2u = %016" PRIx64 "  %016" PRIx64 "\n", i, v.i64[0], v.i64[1]);
         printf("        %lf  %lf\n", v.f64[0], v.f64[1]);
     }
 
@@ -311,12 +311,12 @@ void printSSERegs(VirtualProcessor& vp) {
         RegValue value;
         status = vp.RegRead(RegAdd(Reg::YMM0, i), value);
         if (status != VPOperationStatus::OK) {
-            printf("Failed to read register YMM%d\n", i);
+            printf("Failed to read register YMM%u\n", i);
             continue;
         }
 
-        auto& v = value.ymm;
-        printf("YMM%-2d = %016" PRIx64 "  %016" PRIx64 "  %016" PRIx64 "  %016" PRIx64 "\n", i, v.i64[0], v.i64[1], v.i64[2], v.i64[3]);
+        const auto& v = value.ymm;
+        printf("YMM%-2u = %016" PRIx64 "  %016" PRIx64 "  %016" PRIx64 "  %016" PRIx64 "\n", i, v.i64[0], v.i64[1], v.i64[2], v.i64[3]);
         printf("        %lf  %lf  %lf  %lf\n", v.f64[0], v.f64[1], v.f64[2], v.f64[3]);
     }
 
@@ -334,17 +334,17 @@ void printSSERegs(VirtualProcessor& vp) {
         RegValue value;
         status = vp.RegRead(RegAdd(Reg::ZMM0, i), value);
         if (status != VPOperationStatus::OK) {
-            printf("Failed to read register ZMM%d\n", i);
+            printf("Failed to read register ZMM%u\n", i);
             continue;
         }
 
-        auto& v = value.zmm;
-        printf("ZMM%-2d = %016" PRIx64 "  %016" PRIx64 "  %016" PRIx64 "  %016" PRIx64 "  %016" PRIx64 "  %016" PRIx64 "  %016" PRIx64 "  %016" PRIx64 "\n", i, v.i64[0], v.i64[1], v.i64[2], v.i64[3], v.i64[4], v.i64[5], v.i64[6], v.i64[7]);
+        const auto& v = value.zmm;
+        printf("ZMM%-2u = %016" PRIx64 "  %016" PRIx64 "  %016" PRIx64 "  %016" PRIx64 "  %016" PRIx64 "  %016" PRIx64 "  %016" PRIx64 "  %016" PRIx64 "\n", i, v.i64[0], v.i64[1], v.i64[2], v.i64[3], v.i64[4], v.i64[5], v.i64[6], v.i64[7]);
         printf("        %lf  %lf  %lf  %lf  %lf  %lf  %lf  %lf\n", v.f64[0], v.f64[1], v.f64[2], v.f64[3], v.f64[4], v.f64[5], v.f64[6], v.f64[7]);
     }
 }
 
-void printDirtyBitmap(VirtualMachine& vm, uint64_t baseAddress, uint64_t numPages) {
+void printDirtyBitmap(VirtualMachine& vm, uint64_t baseAddress, uint64_t numPages) noexcept {
     if (!vm.GetPlatform().GetFeatures().dirtyPageTracking) {
         printf("Dirty page tracking not supported by the hypervisor\n\n");
     }
@@ -352,10 +352,10 @@ void printDirtyBitmap(VirtualMachine& vm, uint64_t baseAddress, uint64_t numPage
         return;
     }
 
-    size_t bitmapSize = (numPages - 1) / sizeof(uint64_t) + 1;
+    const size_t bitmapSize = (numPages - 1) / sizeof(uint64_t) + 1;
     uint64_t *bitmap = (uint64_t *)alignedAlloc(bitmapSize * sizeof(uint64_t));
     memset(bitmap, 0, bitmapSize * sizeof(uint64_t));
-    auto dptStatus = vm.QueryDirtyPages(baseAddress, numPages * PAGE_SIZE, bitmap, bitmapSize * sizeof(uint64_t));
+    const auto dptStatus = vm.QueryDirtyPages(baseAddress, numPages * PAGE_SIZE, bitmap, bitmapSize * sizeof(uint64_t));
     if (dptStatus == DirtyPageTrackingStatus::OK) {
         printf("Dirty pages:\n");
         uint64_t pageNum = 0;
@@ -378,7 +378,7 @@ void printDirtyBitmap(VirtualMachine& vm, uint64_t baseAddress, uint64_t numPage
     alignedFree(bitmap);
 }
 
-void printAddressTranslation(VirtualProcessor& vp, const uint64_t addr) {
+void printAddressTranslation(VirtualProcessor& vp, const uint64_t addr) noexcept {
     printf("  0x%" PRIx64 " -> ", addr);
     uint64_t paddr;
     if (vp.LinearToPhysical(addr, &paddr)) {

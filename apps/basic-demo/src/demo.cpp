@@ -397,7 +397,7 @@ int main() {
     bool foundPlatform = false;
     size_t platformIndex = 0;
     for (size_t i = 0; i < array_size(PlatformFactories); i++) {
-        Platform& platform = PlatformFactories[i]();
+        const Platform& platform = PlatformFactories[i]();
         if (platform.GetInitStatus() == PlatformInitStatus::OK) {
             printf("%s loaded successfully\n", platform.GetName().c_str());
             foundPlatform = true;
@@ -416,7 +416,7 @@ int main() {
     // Print out the platform's features
     printf("Features:\n");
     auto& features = platform.GetFeatures();
-    printf("  Maximum number of VCPUs: %d per VM, %d global\n", features.maxProcessorsPerVM, features.maxProcessorsGlobal);
+    printf("  Maximum number of VCPUs: %u per VM, %u global\n", features.maxProcessorsPerVM, features.maxProcessorsGlobal);
     printf("  Unrestricted guest: %s\n", (features.unrestrictedGuest) ? "supported" : "unsuported");
     printf("  Extended Page Tables: %s\n", (features.extendedPageTables) ? "supported" : "unsuported");
     printf("  Guest debugging: %s\n", (features.guestDebugging) ? "available" : "unavailable");
@@ -435,7 +435,7 @@ int main() {
         }
     }
     printf("  Floating point extensions:");
-    auto fpExts = BitmaskEnum(features.floatingPointExtensions);
+    const auto fpExts = BitmaskEnum(features.floatingPointExtensions);
     if (!fpExts) printf(" None");
     else {
         if (fpExts.AnyOf(FloatingPointExtension::SSE2)) printf(" SSE2");
@@ -446,7 +446,7 @@ int main() {
     }
     printf("\n");
     printf("  Extended control registers:");
-    auto extCRs = BitmaskEnum(features.extendedControlRegisters);
+    const auto extCRs = BitmaskEnum(features.extendedControlRegisters);
     if (!extCRs) printf(" None");
     else {
         if (extCRs.AnyOf(ExtendedControlRegister::CR8)) printf(" CR8");
@@ -455,7 +455,7 @@ int main() {
     }
     printf("\n");
     printf("  Extended VM exits:");
-    auto extVMExits = BitmaskEnum(features.extendedVMExits);
+    const auto extVMExits = BitmaskEnum(features.extendedVMExits);
     if (!extVMExits) printf(" None");
     else {
         if (extVMExits.AnyOf(ExtendedVMExit::CPUID)) printf(" CPUID");
@@ -464,7 +464,7 @@ int main() {
     }
     printf("\n");
     printf("  Exception exits:");
-    auto excptExits = BitmaskEnum(features.exceptionExits);
+    const auto excptExits = BitmaskEnum(features.exceptionExits);
     if (!excptExits) printf(" None");
     else {
         if (excptExits.AnyOf(ExceptionCode::DivideErrorFault)) printf(" DivideErrorFault");
@@ -760,7 +760,7 @@ int main() {
 
         if (eip.u32 == 0x10000013) {
             printf("Emulation stopped at the right place!\n");
-            uint32_t memValue = *(uint32_t *)&ram[0x5000];
+            const uint32_t memValue = *(uint32_t *)&ram[0x5000];
             if (eax.u32 == 0xcc99e897 && edx.u32 == 0x12345678 && memValue == 0xcc99e897) {
                 printf("And we got the right result!\n");
             }
@@ -800,7 +800,7 @@ int main() {
 
         if (eip.u32 == 0x10000021) {
             printf("Emulation stopped at the right place!\n");
-            uint32_t memValue = *(uint32_t *)&ram[0xffffc];
+            const uint32_t memValue = *(uint32_t *)&ram[0xffffc];
             if (edx.u32 == 0xf00dcafe && esp.u32 == 0x00100000 && memValue == 0xf00dcafe) {
                 printf("And we got the right result!\n");
             }
@@ -936,18 +936,18 @@ int main() {
     // but for the purposes of readability we're going to change the callbacks on every test.
 
     // Define lambdas for unexpected callbacks
-    auto unexpectedIORead = [](void *, uint16_t port, size_t size) -> uint32_t {
+    const auto unexpectedIORead = [](void *, uint16_t port, size_t size) noexcept -> uint32_t {
         printf("** Unexpected I/O read from port 0x%x (%zd bytes)\n", port, size);
         return 0;
     };
-    auto unexpectedIOWrite = [](void *, uint16_t port, size_t size, uint32_t value) {
+    const auto unexpectedIOWrite = [](void *, uint16_t port, size_t size, uint32_t value) noexcept {
         printf("** Unexpected I/O write to port 0x%x (%zd bytes) = 0x%x\n", port, size, value);
     };
-    auto unexpectedMMIORead = [](void *, uint64_t address, size_t size) -> uint64_t {
+    const auto unexpectedMMIORead = [](void *, uint64_t address, size_t size) noexcept -> uint64_t {
         printf("** Unexpected MMIO read from address 0x%" PRIx64 " (%zd bytes)\n", address, size);
         return 0;
     };
-    auto unexpectedMMIOWrite = [](void *, uint64_t address, size_t size, uint64_t value) {
+    const auto unexpectedMMIOWrite = [](void *, uint64_t address, size_t size, uint64_t value) noexcept {
         printf("** Unexpected MMIO write to address 0x%" PRIx64 " (%zd bytes)\n = 0x%" PRIx64 "", address, size, value);
     };
 
@@ -956,7 +956,7 @@ int main() {
     printf("Testing PIO\n\n");
 
     // Setup I/O callbacks
-    vm.RegisterIOReadCallback([](void *, uint16_t port, size_t size) -> uint32_t {
+    vm.RegisterIOReadCallback([](void *, uint16_t port, size_t size) noexcept -> uint32_t {
         printf("I/O read callback reached!\n");
         if (port == 0x1000 && size == 1) {
             printf("And we got the right port and size!\n");
@@ -991,7 +991,7 @@ int main() {
 
     // Setup I/O callbacks
     vm.RegisterIOReadCallback(unexpectedIORead);
-    vm.RegisterIOWriteCallback([](void *, uint16_t port, size_t size, uint32_t value) {
+    vm.RegisterIOWriteCallback([](void *, uint16_t port, size_t size, uint32_t value) noexcept {
         printf("I/O write callback reached!\n");
         if (port == 0x1001 && size == 1) {
             printf("And we got the right port and size!\n");
@@ -1025,7 +1025,7 @@ int main() {
 
 
     // Setup I/O callbacks
-    vm.RegisterIOReadCallback([](void *, uint16_t port, size_t size) -> uint32_t {
+    vm.RegisterIOReadCallback([](void *, uint16_t port, size_t size) noexcept -> uint32_t {
         printf("I/O read callback reached!\n");
         if (port == 0x1002 && size == 2) {
             printf("And we got the right port and size!\n");
@@ -1060,7 +1060,7 @@ int main() {
 
     // Setup I/O callbacks
     vm.RegisterIOReadCallback(unexpectedIORead);
-    vm.RegisterIOWriteCallback([](void *, uint16_t port, size_t size, uint32_t value) {
+    vm.RegisterIOWriteCallback([](void *, uint16_t port, size_t size, uint32_t value) noexcept {
         printf("I/O write callback reached!\n");
         if (port == 0x1003 && size == 2) {
             printf("And we got the right port and size!\n");
@@ -1094,7 +1094,7 @@ int main() {
 
 
     // Setup I/O callbacks
-    vm.RegisterIOReadCallback([](void *, uint16_t port, size_t size) -> uint32_t {
+    vm.RegisterIOReadCallback([](void *, uint16_t port, size_t size) noexcept -> uint32_t {
         printf("I/O read callback reached!\n");
         if (port == 0x1004 && size == 4) {
             printf("And we got the right port and size!\n");
@@ -1129,7 +1129,7 @@ int main() {
 
     // Setup I/O callbacks
     vm.RegisterIOReadCallback(unexpectedIORead);
-    vm.RegisterIOWriteCallback([](void *, uint16_t port, size_t size, uint32_t value) {
+    vm.RegisterIOWriteCallback([](void *, uint16_t port, size_t size, uint32_t value) noexcept {
         printf("I/O write callback reached!\n");
         if (port == 0x1005 && size == 4) {
             printf("And we got the right port and size!\n");
@@ -1168,7 +1168,7 @@ int main() {
     // Setup I/O callbacks
     vm.RegisterIOReadCallback(unexpectedIORead);
     vm.RegisterIOWriteCallback(unexpectedIOWrite);
-    vm.RegisterMMIOReadCallback([](void *, uint64_t address, size_t size) -> uint64_t {
+    vm.RegisterMMIOReadCallback([](void *, uint64_t address, size_t size) noexcept -> uint64_t {
         printf("MMIO read callback reached!\n");
         if (address == 0xe0000000 && size == 4) {
             printf("And we got the right address and size!\n");
@@ -1203,7 +1203,7 @@ int main() {
     vm.RegisterIOReadCallback(unexpectedIORead);
     vm.RegisterIOWriteCallback(unexpectedIOWrite);
     vm.RegisterMMIOReadCallback(unexpectedMMIORead);
-    vm.RegisterMMIOWriteCallback([](void *, uint64_t address, size_t size, uint64_t value) {
+    vm.RegisterMMIOWriteCallback([](void *, uint64_t address, size_t size, uint64_t value) noexcept {
         printf("MMIO write callback reached!\n");
         if (address == 0xe0000004 && size == 4) {
             printf("And we got the right address and size!\n");
@@ -1237,7 +1237,7 @@ int main() {
     // Setup I/O callbacks
     vm.RegisterIOReadCallback(unexpectedIORead);
     vm.RegisterIOWriteCallback(unexpectedIOWrite);
-    vm.RegisterMMIOReadCallback([](void *, uint64_t address, size_t size) -> uint64_t {
+    vm.RegisterMMIOReadCallback([](void *, uint64_t address, size_t size) noexcept -> uint64_t {
         printf("MMIO read callback reached!\n");
         if (address == 0xe0000004 && size == 4) {
             printf("And we got the right address and size!\n");
@@ -1245,7 +1245,7 @@ int main() {
         }
         return 0;
     });
-    vm.RegisterMMIOWriteCallback([](void *, uint64_t address, size_t size, uint64_t value) {
+    vm.RegisterMMIOWriteCallback([](void *, uint64_t address, size_t size, uint64_t value) noexcept {
         printf("MMIO write callback reached!\n");
         if (address == 0xe0000004 && size == 4) {
             printf("And we got the right address and size!\n");
@@ -1485,7 +1485,7 @@ int main() {
             printf("Failed to enable software breakpoints\n");
             return -1;
         }
-        uint8_t swBpBackup = ram[0x5071];
+        const uint8_t swBpBackup = ram[0x5071];
         ram[0x5071] = 0xCC;
 
         // Run CPU. Should hit the breakpoint

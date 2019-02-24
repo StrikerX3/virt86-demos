@@ -25,7 +25,7 @@ SOFTWARE.
 */
 #include "utils.hpp"
 
-const char *reason_str(virt86::VMExitReason reason) {
+const char *reason_str(virt86::VMExitReason reason) noexcept {
     switch (reason) {
     case virt86::VMExitReason::Normal: return "Normal";
     case virt86::VMExitReason::Cancelled: return "Cancelled";
@@ -46,7 +46,7 @@ const char *reason_str(virt86::VMExitReason reason) {
     }
 }
 
-bool loadSegment(virt86::VirtualProcessor& vp, uint16_t selector, virt86::RegValue& value) {
+bool loadSegment(virt86::VirtualProcessor& vp, uint16_t selector, virt86::RegValue& value) noexcept {
     // Get GDT entry from memory
     virt86::RegValue gdt;
     if (vp.RegRead(virt86::Reg::GDTR, gdt) != virt86::VPOperationStatus::OK) {

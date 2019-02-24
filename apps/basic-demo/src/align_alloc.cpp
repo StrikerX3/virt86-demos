@@ -37,7 +37,7 @@ SOFTWARE.
 #  error Unsupported platform
 #endif
 
-uint8_t *alignedAlloc(const size_t size) {
+uint8_t *alignedAlloc(const size_t size) noexcept {
 #if defined(_WIN32)
     LPVOID mem = VirtualAlloc(NULL, size, MEM_RESERVE, PAGE_READWRITE);
     if (mem == NULL) {
@@ -61,7 +61,7 @@ uint8_t *alignedAlloc(const size_t size) {
 #endif
 }
 
-bool alignedFree(void *memory) {
+bool alignedFree(void *memory) noexcept {
 #if defined(_WIN32)
     return VirtualFree(memory, 0, MEM_RELEASE) == TRUE;
 #elif defined(__linux__)
