@@ -43,7 +43,7 @@ make
 
 ### Building on Mac OS X
 
-Install [brew](https://brew.sh/) if you haven't already. The default installation is sufficient. Xcode is not needed to compile the library -- virt86 demos can be compiled with the Xcode command line tools included with brew.
+Install [brew](https://brew.sh/) if you haven't already. The default installation is sufficient. Xcode is not needed to compile the applications -- virt86 demos can be compiled with the Xcode command line tools included with brew.
 
 ```bash
 git clone https://github.com/StrikerX3/virt86-demos.git
