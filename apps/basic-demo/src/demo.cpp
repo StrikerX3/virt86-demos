@@ -424,11 +424,12 @@ int main() {
     printf("  Dirty page tracking: %s\n", (features.dirtyPageTracking) ? "available" : "unavailable");
     printf("  Partial dirty bitmap querying: %s\n", (features.partialDirtyBitmap) ? "supported" : "unsupported");
     printf("  Large memory allocation: %s\n", (features.largeMemoryAllocation) ? "supported" : "unsuported");
+    printf("  Memory aliasing: %s\n", (features.memoryAliasing) ? "supported" : "unsuported");
     printf("  Memory unmapping: %s\n", (features.memoryUnmapping) ? "supported" : "unsuported");
     printf("  Partial unmapping: %s\n", (features.partialUnmapping) ? "supported" : "unsuported");
     printf("  Partial MMIO instructions: %s\n", (features.partialMMIOInstructions) ? "yes" : "no");
     printf("  Custom CPUID results: %s\n", (features.customCPUIDs) ? "supported" : "unsupported");
-    if (features.customCPUIDs) {
+    if (features.customCPUIDs && features.supportedCustomCPUIDs.size() > 0) {
         printf("       Function        EAX         EBX         ECX         EDX\n");
         for (auto it = features.supportedCustomCPUIDs.cbegin(); it != features.supportedCustomCPUIDs.cend(); it++) {
             printf("      0x%08x = 0x%08x  0x%08x  0x%08x  0x%08x\n", it->function, it->eax, it->ebx, it->ecx, it->edx);
@@ -516,6 +517,25 @@ int main() {
     case MemoryMappingStatus::InvalidFlags: printf("failed: invalid flags supplied\n"); return -1;
     case MemoryMappingStatus::Failed: printf("failed\n"); return -1;
     default: printf("failed: unhandled reason (%d)\n", static_cast<int>(memMapStatus)); return -1;
+    }
+
+    // Alias ROM to the top of the 31-bit address range if supported
+    // TODO: test memory aliasing in the virtual machine
+    if (features.memoryAliasing) {
+        printf("Mapping ROM alias... ");
+        memMapStatus = vm.MapGuestMemory(romBase >> 1, romSize, MemoryFlags::Read | MemoryFlags::Execute, rom);
+        switch (memMapStatus) {
+        case MemoryMappingStatus::OK: printf("succeeded\n"); break;
+        case MemoryMappingStatus::Unsupported: printf("failed: unsupported operation\n"); return -1;
+        case MemoryMappingStatus::MisalignedHostMemory: printf("failed: memory host block is misaligned\n"); return -1;
+        case MemoryMappingStatus::MisalignedAddress: printf("failed: base address is misaligned\n"); return -1;
+        case MemoryMappingStatus::MisalignedSize: printf("failed: size is misaligned\n"); return -1;
+        case MemoryMappingStatus::EmptyRange: printf("failed: size is zero\n"); return -1;
+        case MemoryMappingStatus::AlreadyAllocated: printf("failed: host memory block is already allocated\n"); return -1;
+        case MemoryMappingStatus::InvalidFlags: printf("failed: invalid flags supplied\n"); return -1;
+        case MemoryMappingStatus::Failed: printf("failed\n"); return -1;
+        default: printf("failed: unhandled reason (%d)\n", static_cast<int>(memMapStatus)); return -1;
+        }
     }
 
     // Map RAM to the bottom of the 32-bit address range
