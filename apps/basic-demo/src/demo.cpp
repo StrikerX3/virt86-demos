@@ -593,9 +593,6 @@ int main() {
         // Skip initialization code
         eip.u32 = 0xffe6;
 
-        RegValue idtr;
-
-
         vp.RegWrite(Reg::GDTR, gdtr);
         vp.RegWrite(Reg::IDTR, idtr);
 
