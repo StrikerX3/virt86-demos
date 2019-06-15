@@ -636,7 +636,12 @@ int main() {
 #ifdef DO_MANUAL_JMP
     {
         // Do the jmp dword 0x8:0xffffff00 manually
-        opStatus = vp.RegWrite(Reg::CS, 0x0008);
+        RegValue cs;
+        if (!loadSegment(vp, 0x0008, cs)) {
+            printf("Failed to load segment data for selector 0x0008\n");
+            return -1;
+        }
+        opStatus = vp.RegWrite(Reg::CS, cs);
         if (opStatus != VPOperationStatus::OK) {
             printf("Failed to set CS register\n");
             return -1;
@@ -669,6 +674,13 @@ int main() {
             0x0010, 0x0010, 0x0010,
         };
 
+        for (int i = 5; i < 8; i++) {
+            if (!loadSegment(vp, 0x0010, values[i])) {
+                printf("Failed to load segment data for selector 0x0010\n");
+                return -1;
+            }
+        }
+
         opStatus = vp.RegWrite(regs, values, array_size(regs));
         if (opStatus != VPOperationStatus::OK) {
             printf("Failed to set VCPU registers\n");
@@ -676,13 +688,13 @@ int main() {
         }
 
         // Clear page directory
-        memset(&ram[0x1000], 0, 0x1000);
+        memset(&ram[0x1000], 0, 0x1000 * sizeof(uint16_t));
 
         // Write 0xdeadbeef at physical memory address 0x5000
         *(uint32_t *)&ram[0x5000] = 0xdeadbeef;
 
         // Identity map the RAM to 0x00000000
-        for (uint32_t i = 0; i < 0xf0; i++) {
+        for (uint32_t i = 0; i < 0x100; i++) {
             *(uint32_t *)&ram[0x2000 + i * 4] = 0x0003 + i * 0x1000;
         }
 
