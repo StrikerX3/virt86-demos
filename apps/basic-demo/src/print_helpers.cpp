@@ -160,8 +160,201 @@ void printDR7Bits(uint64_t dr7) noexcept {
 }
 #undef PRINT_FLAG
 
-void printRegs(VirtualProcessor& vp) noexcept {
+enum class CPUMode {
+    Unknown,
+    
+    RealAddress,
+    Virtual8086,
+    Protected,
+    IA32e,
+};
+
+CPUMode getCPUMode(VirtualProcessor& vp) noexcept {
+    RegValue cr0, rflags, efer;
+    vp.RegRead(Reg::CR0, cr0);
+    vp.RegRead(Reg::RFLAGS, rflags);
+    vp.RegRead(Reg::EFER, efer);
+
+    bool cr0_pe = (cr0.u64 & CR0_PE) != 0;
+    bool rflags_vm = (rflags.u64 & RFLAGS_VM) != 0;
+    bool efer_lma = (efer.u64 & EFER_LMA) != 0;
+
+    if (!cr0_pe) {
+        return CPUMode::RealAddress;
+    }
+    if (rflags_vm) {
+        return CPUMode::Virtual8086;
+    }
+    else if (efer_lma) {
+        return CPUMode::IA32e;
+    }
+    return CPUMode::Protected;
+}
+
+enum class PagingMode {
+    Unknown,
+    Invalid,
+
+    None,
+    NoneLME,
+    NonePAE,
+    NonePAEandLME,
+    ThirtyTwoBit,
+    PAE,
+    FourLevel,
+};
+
+PagingMode getPagingMode(VirtualProcessor& vp) noexcept {
+    RegValue cr0, cr4, efer;
+    vp.RegRead(Reg::CR0, cr0);
+    vp.RegRead(Reg::CR4, cr4);
+    vp.RegRead(Reg::EFER, efer);
+
+    bool cr0_pg = (cr0.u64 & CR0_PG) != 0;
+    bool cr4_pae = (cr4.u64 & CR4_PAE) != 0;
+    bool efer_lme = (efer.u64 & EFER_LME) != 0;
+
+    uint8_t pagingModeBits = 0
+        | (cr0_pg ? (1 << 2) : 0)
+        | (cr4_pae ? (1 << 1) : 0)
+        | (efer_lme ? (1 << 0) : 0);
+
+    switch (pagingModeBits) {
+    case 0b000: return PagingMode::None;
+    case 0b001: return PagingMode::NoneLME;
+    case 0b010: return PagingMode::NonePAE;
+    case 0b011: return PagingMode::NonePAEandLME;
+    case 0b100: return PagingMode::ThirtyTwoBit;
+    case 0b101: return PagingMode::Invalid;
+    case 0b110: return PagingMode::PAE;
+    case 0b111: return PagingMode::FourLevel;
+    default: return PagingMode::Unknown;
+    }
+}
+
+enum class SegmentSize {
+    Invalid,
+
+    _16,
+    _32,
+    _64,
+};
+
+SegmentSize getSegmentBitSize(VirtualProcessor& vp, Reg segmentReg) noexcept {
+    size_t regOffset = RegOffset<size_t>(Reg::CS, segmentReg);
+    size_t maxOffset = RegOffset<size_t>(Reg::CS, Reg::TR);
+    if (regOffset > maxOffset) {
+        return SegmentSize::Invalid;
+    }
+
+    RegValue value;
+    vp.RegRead(segmentReg, value);
+
+    CPUMode cpuMode = getCPUMode(vp);
+
+    if (cpuMode == CPUMode::IA32e && value.segment.attributes.longMode) {
+        return SegmentSize::_64;
+    }
+    if (value.segment.attributes.defaultSize) {
+        return SegmentSize::_32;
+    }
+    return SegmentSize::_16;
+}
+
 #define READREG(code, name) RegValue name; vp.RegRead(code, name);
+void printRegs16(VirtualProcessor& vp) noexcept {
+    READREG(Reg::AX, ax); READREG(Reg::CX, cx); READREG(Reg::DX, dx); READREG(Reg::BX, bx);
+    READREG(Reg::SP, sp); READREG(Reg::BP, bp); READREG(Reg::SI, si); READREG(Reg::DI, di);
+    READREG(Reg::IP, ip);
+    READREG(Reg::CS, cs); READREG(Reg::SS, ss);
+    READREG(Reg::DS, ds); READREG(Reg::ES, es);
+    READREG(Reg::FS, fs); READREG(Reg::GS, gs);
+    READREG(Reg::LDTR, ldtr); READREG(Reg::TR, tr);
+    READREG(Reg::GDTR, gdtr);
+    READREG(Reg::IDTR, idtr);
+    READREG(Reg::FLAGS, flags);
+    READREG(Reg::EFER, efer);
+    READREG(Reg::CR2, cr2); READREG(Reg::CR0, cr0);
+    READREG(Reg::CR3, cr3); READREG(Reg::CR4, cr4);
+    READREG(Reg::DR0, dr0);
+    READREG(Reg::DR1, dr1); READREG(Reg::XCR0, xcr0);
+    READREG(Reg::DR2, dr2); READREG(Reg::DR6, dr6);
+    READREG(Reg::DR3, dr3); READREG(Reg::DR7, dr7);
+
+    const auto extendedRegs = BitmaskEnum(vp.GetVirtualMachine().GetPlatform().GetFeatures().extendedControlRegisters);
+
+    printf("  AX = %04" PRIx16 "   CX = %04" PRIx16 "   DX = %04" PRIx16 "   BX = %04" PRIx16 "\n", ax.u16, cx.u16, dx.u16, bx.u16);
+    printf("  SP = %04" PRIx16 "   BP = %04" PRIx16 "   SI = %04" PRIx16 "   DI = %04" PRIx16 "\n", sp.u16, bp.u16, si.u16, di.u16);
+    printf("  IP = %04" PRIx16 "\n", ip.u16);
+    printf("  CS = %04" PRIx16 " -> %08" PRIx32 ":%04" PRIx16 " [%04" PRIx16 "]   SS = %04" PRIx16 " -> %08" PRIx32 ":%04" PRIx16 " [%04" PRIx16 "]\n", cs.segment.selector, (uint32_t)cs.segment.base, (uint16_t)cs.segment.limit, cs.segment.attributes.u16, ss.segment.selector, (uint32_t)ss.segment.base, (uint16_t)ss.segment.limit, ss.segment.attributes.u16);
+    printf("  DS = %04" PRIx16 " -> %08" PRIx32 ":%04" PRIx16 " [%04" PRIx16 "]   ES = %04" PRIx16 " -> %08" PRIx32 ":%04" PRIx16 " [%04" PRIx16 "]\n", ds.segment.selector, (uint32_t)ds.segment.base, (uint16_t)ds.segment.limit, ds.segment.attributes.u16, es.segment.selector, (uint32_t)es.segment.base, (uint16_t)es.segment.limit, es.segment.attributes.u16);
+    printf("  FS = %04" PRIx16 " -> %08" PRIx32 ":%04" PRIx16 " [%04" PRIx16 "]   GS = %04" PRIx16 " -> %08" PRIx32 ":%04" PRIx16 " [%04" PRIx16 "]\n", fs.segment.selector, (uint32_t)fs.segment.base, (uint16_t)fs.segment.limit, fs.segment.attributes.u16, gs.segment.selector, (uint32_t)gs.segment.base, (uint16_t)gs.segment.limit, gs.segment.attributes.u16);
+    printf("LDTR = %04" PRIx16 " -> %08" PRIx32 ":%04" PRIx16 " [%04" PRIx16 "]   TR = %04" PRIx16 " -> %08" PRIx32 ":%04" PRIx16 " [%04" PRIx16 "]\n", ldtr.segment.selector, (uint32_t)ldtr.segment.base, (uint16_t)ldtr.segment.limit, ldtr.segment.attributes.u16, tr.segment.selector, (uint32_t)tr.segment.base, (uint16_t)tr.segment.limit, tr.segment.attributes.u16);
+    printf("GDTR =         %08" PRIx32 ":%04" PRIx16 "\n", (uint32_t)gdtr.table.base, gdtr.table.limit);
+    printf("IDTR =         %08" PRIx32 ":%04" PRIx16 "\n", (uint32_t)idtr.table.base, idtr.table.limit);
+    printf("FLAGS = %04" PRIx16, flags.u16); printRFLAGSBits(flags.u16); printf("\n");
+    printf("EFER = %016" PRIx64, efer.u64); printEFERBits(efer.u64); printf("\n");
+    printf(" CR2 = %08" PRIx32 "   CR0 = %08" PRIx32, cr2.u32, cr0.u32); printCR0Bits(cr0.u32); printf("\n");
+    printf(" CR3 = %08" PRIx32 "   CR4 = %08" PRIx32, cr3.u32, cr4.u32); printCR4Bits(cr4.u32); printf("\n");
+    printf(" DR0 = %08" PRIx32 "\n", dr0.u32);
+    printf(" DR1 = %08" PRIx32 "  XCR0 = ", dr1.u32);
+    if (extendedRegs.AnyOf(ExtendedControlRegister::XCR0)) {
+        printf("%016" PRIx64, xcr0.u64); printXCR0Bits(xcr0.u64); printf("\n");
+    }
+    else {
+        printf("................\n");
+    }
+    printf(" DR2 = %08" PRIx32 "   DR6 = %08" PRIx32, dr2.u32, dr6.u32); printDR6Bits(dr6.u32); printf("\n");
+    printf(" DR3 = %08" PRIx32 "   DR7 = %08" PRIx32, dr3.u32, dr7.u32); printDR7Bits(dr7.u32); printf("\n");
+}
+
+void printRegs32(VirtualProcessor& vp) noexcept {
+    READREG(Reg::EAX, eax); READREG(Reg::ECX, ecx); READREG(Reg::EDX, edx); READREG(Reg::EBX, ebx);
+    READREG(Reg::ESP, esp); READREG(Reg::EBP, ebp); READREG(Reg::ESI, esi); READREG(Reg::EDI, edi);
+    READREG(Reg::EIP, eip);
+    READREG(Reg::CS, cs); READREG(Reg::SS, ss);
+    READREG(Reg::DS, ds); READREG(Reg::ES, es);
+    READREG(Reg::FS, fs); READREG(Reg::GS, gs);
+    READREG(Reg::LDTR, ldtr); READREG(Reg::TR, tr);
+    READREG(Reg::GDTR, gdtr);
+    READREG(Reg::IDTR, idtr);
+    READREG(Reg::EFLAGS, eflags);
+    READREG(Reg::EFER, efer);
+    READREG(Reg::CR2, cr2); READREG(Reg::CR0, cr0);
+    READREG(Reg::CR3, cr3); READREG(Reg::CR4, cr4);
+    READREG(Reg::DR0, dr0);
+    READREG(Reg::DR1, dr1); READREG(Reg::XCR0, xcr0);
+    READREG(Reg::DR2, dr2); READREG(Reg::DR6, dr6);
+    READREG(Reg::DR3, dr3); READREG(Reg::DR7, dr7);
+
+    const auto extendedRegs = BitmaskEnum(vp.GetVirtualMachine().GetPlatform().GetFeatures().extendedControlRegisters);
+
+    printf(" EAX = %08" PRIx32 "   ECX = %08" PRIx32 "   EDX = %08" PRIx32 "   EBX = %08" PRIx32 "\n", eax.u32, ecx.u32, edx.u32, ebx.u32);
+    printf(" ESP = %08" PRIx32 "   EBP = %08" PRIx32 "   ESI = %08" PRIx32 "   EDI = %08" PRIx32 "\n", esp.u32, ebp.u32, esi.u32, edi.u32);
+    printf(" EIP = %08" PRIx32 "\n", eip.u32);
+    printf("  CS = %04" PRIx16 " -> %08" PRIx32 ":%08" PRIx32 " [%04" PRIx16 "]   SS = %04" PRIx16 " -> %08" PRIx32 ":%08" PRIx32 " [%04" PRIx16 "]\n", cs.segment.selector, (uint32_t)cs.segment.base, cs.segment.limit, cs.segment.attributes.u16, ss.segment.selector, (uint32_t)ss.segment.base, ss.segment.limit, ss.segment.attributes.u16);
+    printf("  DS = %04" PRIx16 " -> %08" PRIx32 ":%08" PRIx32 " [%04" PRIx16 "]   ES = %04" PRIx16 " -> %08" PRIx32 ":%08" PRIx32 " [%04" PRIx16 "]\n", ds.segment.selector, (uint32_t)ds.segment.base, ds.segment.limit, ds.segment.attributes.u16, es.segment.selector, (uint32_t)es.segment.base, es.segment.limit, es.segment.attributes.u16);
+    printf("  FS = %04" PRIx16 " -> %08" PRIx32 ":%08" PRIx32 " [%04" PRIx16 "]   GS = %04" PRIx16 " -> %08" PRIx32 ":%08" PRIx32 " [%04" PRIx16 "]\n", fs.segment.selector, (uint32_t)fs.segment.base, fs.segment.limit, fs.segment.attributes.u16, gs.segment.selector, (uint32_t)gs.segment.base, gs.segment.limit, gs.segment.attributes.u16);
+    printf("LDTR = %04" PRIx16 " -> %08" PRIx32 ":%08" PRIx32 " [%04" PRIx16 "]   TR = %04" PRIx16 " -> %08" PRIx32 ":%08" PRIx32 " [%04" PRIx16 "]\n", ldtr.segment.selector, (uint32_t)ldtr.segment.base, ldtr.segment.limit, ldtr.segment.attributes.u16, tr.segment.selector, (uint32_t)tr.segment.base, tr.segment.limit, tr.segment.attributes.u16);
+    printf("GDTR =         %08" PRIx32 ":%04" PRIx16 "\n", (uint32_t)gdtr.table.base, gdtr.table.limit);
+    printf("IDTR =         %08" PRIx32 ":%04" PRIx16 "\n", (uint32_t)idtr.table.base, idtr.table.limit);
+    printf("EFLAGS = %08" PRIx32, eflags.u32); printRFLAGSBits(eflags.u32); printf("\n");
+    printf("EFER = %016" PRIx64, efer.u64); printEFERBits(efer.u64); printf("\n");
+    printf(" CR2 = %08" PRIx32 "   CR0 = %08" PRIx32, cr2.u32, cr0.u32); printCR0Bits(cr0.u32); printf("\n");
+    printf(" CR3 = %08" PRIx32 "   CR4 = %08" PRIx32, cr3.u32, cr4.u32); printCR4Bits(cr4.u32); printf("\n");
+    printf(" DR0 = %08" PRIx32 "\n", dr0.u32);
+    printf(" DR1 = %08" PRIx32 "  XCR0 = ", dr1.u32);
+    if (extendedRegs.AnyOf(ExtendedControlRegister::XCR0)) {
+        printf("%016" PRIx64, xcr0.u64); printXCR0Bits(xcr0.u64); printf("\n");
+    }
+    else {
+        printf("................\n");
+    }
+    printf(" DR2 = %08" PRIx32 "   DR6 = %08" PRIx32, dr2.u32, dr6.u32); printDR6Bits(dr6.u32); printf("\n");
+    printf(" DR3 = %08" PRIx32 "   DR7 = %08" PRIx32, dr3.u32, dr7.u32); printDR7Bits(dr7.u32); printf("\n");
+}
+
+void printRegs64(VirtualProcessor& vp) noexcept {
     READREG(Reg::RAX, rax); READREG(Reg::RCX, rcx); READREG(Reg::RDX, rdx); READREG(Reg::RBX, rbx);
     READREG(Reg::RSP, rsp); READREG(Reg::RBP, rbp); READREG(Reg::RSI, rsi); READREG(Reg::RDI, rdi);
     READREG(Reg::R8, r8); READREG(Reg::R9, r9); READREG(Reg::R10, r10); READREG(Reg::R11, r11);
@@ -177,46 +370,86 @@ void printRegs(VirtualProcessor& vp) noexcept {
     READREG(Reg::EFER, efer);
     READREG(Reg::CR2, cr2); READREG(Reg::CR0, cr0);
     READREG(Reg::CR3, cr3); READREG(Reg::CR4, cr4);
-    READREG(Reg::DR0, dr0); READREG(Reg::CR8, cr8); 
+    READREG(Reg::DR0, dr0); READREG(Reg::CR8, cr8);
     READREG(Reg::DR1, dr1); READREG(Reg::XCR0, xcr0);
     READREG(Reg::DR2, dr2); READREG(Reg::DR6, dr6);
     READREG(Reg::DR3, dr3); READREG(Reg::DR7, dr7);
-#undef READREG
-  
+
     const auto extendedRegs = BitmaskEnum(vp.GetVirtualMachine().GetPlatform().GetFeatures().extendedControlRegisters);
 
     printf(" RAX = %016" PRIx64 "   RCX = %016" PRIx64 "   RDX = %016" PRIx64 "   RBX = %016" PRIx64 "\n", rax.u64, rcx.u64, rdx.u64, rbx.u64);
     printf(" RSP = %016" PRIx64 "   RBP = %016" PRIx64 "   RSI = %016" PRIx64 "   RDI = %016" PRIx64 "\n", rsp.u64, rbp.u64, rsi.u64, rdi.u64);
-    printf("  R8 = %016" PRIx64 "    R9 = %016" PRIx64 "   R10 = %016" PRIx64 "   R11 = %016" PRIx64 "\n",  r8.u64,  r9.u64, r10.u64, r11.u64);
+    printf("  R8 = %016" PRIx64 "    R9 = %016" PRIx64 "   R10 = %016" PRIx64 "   R11 = %016" PRIx64 "\n", r8.u64, r9.u64, r10.u64, r11.u64);
     printf(" R12 = %016" PRIx64 "   R13 = %016" PRIx64 "   R14 = %016" PRIx64 "   R15 = %016" PRIx64 "\n", r12.u64, r13.u64, r14.u64, r15.u64);
     printf(" RIP = %016" PRIx64 "\n", rip.u64);
-    printf("  CS = %04x -> %016" PRIx64 ":%08x [%04x]   SS = %04x -> %016" PRIx64 ":%08x [%04x]\n", cs.segment.selector, cs.segment.base, cs.segment.limit, cs.segment.attributes.u16, ss.segment.selector, ss.segment.base, ss.segment.limit, ss.segment.attributes.u16);
-    printf("  DS = %04x -> %016" PRIx64 ":%08x [%04x]   ES = %04x -> %016" PRIx64 ":%08x [%04x]\n", ds.segment.selector, ds.segment.base, ds.segment.limit, ds.segment.attributes.u16, es.segment.selector, es.segment.base, es.segment.limit, es.segment.attributes.u16);
-    printf("  FS = %04x -> %016" PRIx64 ":%08x [%04x]   GS = %04x -> %016" PRIx64 ":%08x [%04x]\n", fs.segment.selector, fs.segment.base, fs.segment.limit, fs.segment.attributes.u16, gs.segment.selector, gs.segment.base, gs.segment.limit, gs.segment.attributes.u16);
-    printf("LDTR = %04x -> %016" PRIx64 ":%08x [%04x]   TR = %04x -> %016" PRIx64 ":%08x [%04x]\n", ldtr.segment.selector, ldtr.segment.base, ldtr.segment.limit, ldtr.segment.attributes.u16, tr.segment.selector, tr.segment.base, tr.segment.limit, tr.segment.attributes.u16);
-    printf("GDTR =         %016" PRIx64 ":%04x\n", gdtr.table.base, gdtr.table.limit);
-    printf("IDTR =         %016" PRIx64 ":%04x\n", idtr.table.base, idtr.table.limit);
-    printf("RFLAGS = %016" PRIx64 "", rflags.u64); printRFLAGSBits(rflags.u64); printf("\n");
+    printf("  CS = %04" PRIx16 " -> %016" PRIx64 ":%08" PRIx32 " [%04" PRIx16 "]   SS = %04" PRIx16 " -> %016" PRIx64 ":%08" PRIx32 " [%04" PRIx16 "]\n", cs.segment.selector, cs.segment.base, cs.segment.limit, cs.segment.attributes.u16, ss.segment.selector, ss.segment.base, ss.segment.limit, ss.segment.attributes.u16);
+    printf("  DS = %04" PRIx16 " -> %016" PRIx64 ":%08" PRIx32 " [%04" PRIx16 "]   ES = %04" PRIx16 " -> %016" PRIx64 ":%08" PRIx32 " [%04" PRIx16 "]\n", ds.segment.selector, ds.segment.base, ds.segment.limit, ds.segment.attributes.u16, es.segment.selector, es.segment.base, es.segment.limit, es.segment.attributes.u16);
+    printf("  FS = %04" PRIx16 " -> %016" PRIx64 ":%08" PRIx32 " [%04" PRIx16 "]   GS = %04" PRIx16 " -> %016" PRIx64 ":%08" PRIx32 " [%04" PRIx16 "]\n", fs.segment.selector, fs.segment.base, fs.segment.limit, fs.segment.attributes.u16, gs.segment.selector, gs.segment.base, gs.segment.limit, gs.segment.attributes.u16);
+    printf("LDTR = %04" PRIx16 " -> %016" PRIx64 ":%08" PRIx32 " [%04" PRIx16 "]   TR = %04" PRIx16 " -> %016" PRIx64 ":%08" PRIx32 " [%04" PRIx16 "]\n", ldtr.segment.selector, ldtr.segment.base, ldtr.segment.limit, ldtr.segment.attributes.u16, tr.segment.selector, tr.segment.base, tr.segment.limit, tr.segment.attributes.u16);
+    printf("GDTR =         %016" PRIx64 ":%04" PRIx16 "\n", gdtr.table.base, gdtr.table.limit);
+    printf("IDTR =         %016" PRIx64 ":%04" PRIx16 "\n", idtr.table.base, idtr.table.limit);
+    printf("RFLAGS = %016" PRIx64, rflags.u64); printRFLAGSBits(rflags.u64); printf("\n");
     printf("EFER = %016" PRIx64, efer.u64); printEFERBits(efer.u64); printf("\n");
-
-    printf(" CR2 = %016" PRIx64 "   CR0 = %016" PRIx64 "", cr2.u64, cr0.u64); printCR0Bits(cr0.u64); printf("\n");
-    printf(" CR3 = %016" PRIx64 "   CR4 = %016" PRIx64 "", cr3.u64, cr4.u64); printCR4Bits(cr4.u64); printf("\n");
+    printf(" CR2 = %016" PRIx64 "   CR0 = %016" PRIx64, cr2.u64, cr0.u64); printCR0Bits(cr0.u64); printf("\n");
+    printf(" CR3 = %016" PRIx64 "   CR4 = %016" PRIx64, cr3.u64, cr4.u64); printCR4Bits(cr4.u64); printf("\n");
     printf(" DR0 = %016" PRIx64 "   CR8 = ", dr0.u64);
     if (extendedRegs.AnyOf(ExtendedControlRegister::CR8)) {
-        printf("%016" PRIx64 "", cr8.u64); printCR8Bits(cr8.u64); printf("\n");
+        printf("%016" PRIx64, cr8.u64); printCR8Bits(cr8.u64); printf("\n");
     }
     else {
         printf("................\n");
     }
     printf(" DR1 = %016" PRIx64 "  XCR0 = ", dr1.u64);
     if (extendedRegs.AnyOf(ExtendedControlRegister::XCR0)) {
-        printf("%016" PRIx64 "", xcr0.u64); printXCR0Bits(xcr0.u64); printf("\n");
+        printf("%016" PRIx64, xcr0.u64); printXCR0Bits(xcr0.u64); printf("\n");
     }
     else {
         printf("................\n");
     }
-    printf(" DR2 = %016" PRIx64 "   DR6 = %016" PRIx64 "", dr2.u64, dr6.u64); printDR6Bits(dr6.u64); printf("\n");
-    printf(" DR3 = %016" PRIx64 "   DR7 = %016" PRIx64 "", dr3.u64, dr7.u64); printDR7Bits(dr7.u64); printf("\n");
+    printf(" DR2 = %016" PRIx64 "   DR6 = %016" PRIx64, dr2.u64, dr6.u64); printDR6Bits(dr6.u64); printf("\n");
+    printf(" DR3 = %016" PRIx64 "   DR7 = %016" PRIx64, dr3.u64, dr7.u64); printDR7Bits(dr7.u64); printf("\n");
+}
+#undef READREG
+
+void printRegs(VirtualProcessor& vp) noexcept {
+    // Print CPU mode, paging mode and code segment size
+    CPUMode cpuMode = getCPUMode(vp);
+    PagingMode pagingMode = getPagingMode(vp);
+    SegmentSize segmentSize = getSegmentBitSize(vp, Reg::CS);
+
+    switch (cpuMode) {
+    case CPUMode::RealAddress: printf("Real-address mode"); break;
+    case CPUMode::Virtual8086: printf("Virtual-8086 mode"); break;
+    case CPUMode::Protected: printf("Protected mode"); break;
+    case CPUMode::IA32e: printf("IA-32e mode"); break;
+    }
+    printf(", ");
+
+    switch (pagingMode) {
+    case PagingMode::None: printf("no paging"); break;
+    case PagingMode::NoneLME: printf("no paging (LME enabled)"); break;
+    case PagingMode::NonePAE: printf("no paging (PAE enabled)"); break;
+    case PagingMode::NonePAEandLME: printf("no paging (PAE and LME enabled)"); break;
+    case PagingMode::ThirtyTwoBit: printf("32-bit paging"); break;
+    case PagingMode::Invalid: printf("*invalid*"); break;
+    case PagingMode::PAE: printf("PAE paging"); break;
+    case PagingMode::FourLevel: printf("4-level paging"); break;
+    }
+    printf(", ");
+
+    switch (segmentSize) {
+    case SegmentSize::_16: printf("16-bit code"); break;
+    case SegmentSize::_32: printf("32-bit code"); break;
+    case SegmentSize::_64: printf("64-bit code"); break;
+    }
+    printf("\n");
+
+    // Print registers according to segment size
+    switch (segmentSize) {
+    case SegmentSize::_16: printRegs16(vp); break;
+    case SegmentSize::_32: printRegs32(vp); break;
+    case SegmentSize::_64: printRegs64(vp); break;
+    }
 }
 
 void printFPRegs(VirtualProcessor& vp) noexcept {
