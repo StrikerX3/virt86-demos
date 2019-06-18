@@ -240,7 +240,7 @@ enum class SegmentSize {
     _64,
 };
 
-SegmentSize getSegmentBitSize(VirtualProcessor& vp, Reg segmentReg) noexcept {
+SegmentSize getSegmentSize(VirtualProcessor& vp, Reg segmentReg) noexcept {
     size_t regOffset = RegOffset<size_t>(Reg::CS, segmentReg);
     size_t maxOffset = RegOffset<size_t>(Reg::CS, Reg::TR);
     if (regOffset > maxOffset) {
@@ -263,16 +263,20 @@ SegmentSize getSegmentBitSize(VirtualProcessor& vp, Reg segmentReg) noexcept {
 
 #define READREG(code, name) RegValue name; vp.RegRead(code, name);
 void printRegs16(VirtualProcessor& vp) noexcept {
-    READREG(Reg::AX, ax); READREG(Reg::CX, cx); READREG(Reg::DX, dx); READREG(Reg::BX, bx);
-    READREG(Reg::SP, sp); READREG(Reg::BP, bp); READREG(Reg::SI, si); READREG(Reg::DI, di);
-    READREG(Reg::IP, ip);
-    READREG(Reg::CS, cs); READREG(Reg::SS, ss);
+    //READREG(Reg::AX, ax); READREG(Reg::CX, cx); READREG(Reg::DX, dx); READREG(Reg::BX, bx);
+    //READREG(Reg::SP, sp); READREG(Reg::BP, bp); READREG(Reg::SI, si); READREG(Reg::DI, di);
+    //READREG(Reg::IP, ip);
+	READREG(Reg::EAX, eax); READREG(Reg::ECX, ecx); READREG(Reg::EDX, edx); READREG(Reg::EBX, ebx);
+	READREG(Reg::ESP, esp); READREG(Reg::EBP, ebp); READREG(Reg::ESI, esi); READREG(Reg::EDI, edi);
+	READREG(Reg::EIP, eip);
+	READREG(Reg::CS, cs); READREG(Reg::SS, ss);
     READREG(Reg::DS, ds); READREG(Reg::ES, es);
     READREG(Reg::FS, fs); READREG(Reg::GS, gs);
     READREG(Reg::LDTR, ldtr); READREG(Reg::TR, tr);
     READREG(Reg::GDTR, gdtr);
     READREG(Reg::IDTR, idtr);
-    READREG(Reg::FLAGS, flags);
+    //READREG(Reg::FLAGS, flags);
+	READREG(Reg::EFLAGS, eflags);
     READREG(Reg::EFER, efer);
     READREG(Reg::CR2, cr2); READREG(Reg::CR0, cr0);
     READREG(Reg::CR3, cr3); READREG(Reg::CR4, cr4);
@@ -283,17 +287,21 @@ void printRegs16(VirtualProcessor& vp) noexcept {
 
     const auto extendedRegs = BitmaskEnum(vp.GetVirtualMachine().GetPlatform().GetFeatures().extendedControlRegisters);
 
-    printf("  AX = %04" PRIx16 "   CX = %04" PRIx16 "   DX = %04" PRIx16 "   BX = %04" PRIx16 "\n", ax.u16, cx.u16, dx.u16, bx.u16);
-    printf("  SP = %04" PRIx16 "   BP = %04" PRIx16 "   SI = %04" PRIx16 "   DI = %04" PRIx16 "\n", sp.u16, bp.u16, si.u16, di.u16);
-    printf("  IP = %04" PRIx16 "\n", ip.u16);
-    printf("  CS = %04" PRIx16 " -> %08" PRIx32 ":%04" PRIx16 " [%04" PRIx16 "]   SS = %04" PRIx16 " -> %08" PRIx32 ":%04" PRIx16 " [%04" PRIx16 "]\n", cs.segment.selector, (uint32_t)cs.segment.base, (uint16_t)cs.segment.limit, cs.segment.attributes.u16, ss.segment.selector, (uint32_t)ss.segment.base, (uint16_t)ss.segment.limit, ss.segment.attributes.u16);
+    //printf("  AX = %04" PRIx16 "   CX = %04" PRIx16 "   DX = %04" PRIx16 "   BX = %04" PRIx16 "\n", ax.u16, cx.u16, dx.u16, bx.u16);
+    //printf("  SP = %04" PRIx16 "   BP = %04" PRIx16 "   SI = %04" PRIx16 "   DI = %04" PRIx16 "\n", sp.u16, bp.u16, si.u16, di.u16);
+    //printf("  IP = %04" PRIx16 "\n", ip.u16);
+	printf(" EAX = %08" PRIx32 "   ECX = %08" PRIx32 "   EDX = %08" PRIx32 "   EBX = %08" PRIx32 "\n", eax.u32, ecx.u32, edx.u32, ebx.u32);
+	printf(" ESP = %08" PRIx32 "   EBP = %08" PRIx32 "   ESI = %08" PRIx32 "   EDI = %08" PRIx32 "\n", esp.u32, ebp.u32, esi.u32, edi.u32);
+	printf(" EIP = %08" PRIx32 "\n", eip.u32);
+	printf("  CS = %04" PRIx16 " -> %08" PRIx32 ":%04" PRIx16 " [%04" PRIx16 "]   SS = %04" PRIx16 " -> %08" PRIx32 ":%04" PRIx16 " [%04" PRIx16 "]\n", cs.segment.selector, (uint32_t)cs.segment.base, (uint16_t)cs.segment.limit, cs.segment.attributes.u16, ss.segment.selector, (uint32_t)ss.segment.base, (uint16_t)ss.segment.limit, ss.segment.attributes.u16);
     printf("  DS = %04" PRIx16 " -> %08" PRIx32 ":%04" PRIx16 " [%04" PRIx16 "]   ES = %04" PRIx16 " -> %08" PRIx32 ":%04" PRIx16 " [%04" PRIx16 "]\n", ds.segment.selector, (uint32_t)ds.segment.base, (uint16_t)ds.segment.limit, ds.segment.attributes.u16, es.segment.selector, (uint32_t)es.segment.base, (uint16_t)es.segment.limit, es.segment.attributes.u16);
     printf("  FS = %04" PRIx16 " -> %08" PRIx32 ":%04" PRIx16 " [%04" PRIx16 "]   GS = %04" PRIx16 " -> %08" PRIx32 ":%04" PRIx16 " [%04" PRIx16 "]\n", fs.segment.selector, (uint32_t)fs.segment.base, (uint16_t)fs.segment.limit, fs.segment.attributes.u16, gs.segment.selector, (uint32_t)gs.segment.base, (uint16_t)gs.segment.limit, gs.segment.attributes.u16);
     printf("LDTR = %04" PRIx16 " -> %08" PRIx32 ":%04" PRIx16 " [%04" PRIx16 "]   TR = %04" PRIx16 " -> %08" PRIx32 ":%04" PRIx16 " [%04" PRIx16 "]\n", ldtr.segment.selector, (uint32_t)ldtr.segment.base, (uint16_t)ldtr.segment.limit, ldtr.segment.attributes.u16, tr.segment.selector, (uint32_t)tr.segment.base, (uint16_t)tr.segment.limit, tr.segment.attributes.u16);
     printf("GDTR =         %08" PRIx32 ":%04" PRIx16 "\n", (uint32_t)gdtr.table.base, gdtr.table.limit);
     printf("IDTR =         %08" PRIx32 ":%04" PRIx16 "\n", (uint32_t)idtr.table.base, idtr.table.limit);
-    printf("FLAGS = %04" PRIx16, flags.u16); printRFLAGSBits(flags.u16); printf("\n");
-    printf("EFER = %016" PRIx64, efer.u64); printEFERBits(efer.u64); printf("\n");
+    //printf("FLAGS = %04" PRIx16, flags.u16); printRFLAGSBits(flags.u16); printf("\n");
+	printf("EFLAGS = %08" PRIx32, eflags.u32); printRFLAGSBits(eflags.u32); printf("\n");
+	printf("EFER = %016" PRIx64, efer.u64); printEFERBits(efer.u64); printf("\n");
     printf(" CR2 = %08" PRIx32 "   CR0 = %08" PRIx32, cr2.u32, cr0.u32); printCR0Bits(cr0.u32); printf("\n");
     printf(" CR3 = %08" PRIx32 "   CR4 = %08" PRIx32, cr3.u32, cr4.u32); printCR4Bits(cr4.u32); printf("\n");
     printf(" DR0 = %08" PRIx32 "\n", dr0.u32);
@@ -415,7 +423,7 @@ void printRegs(VirtualProcessor& vp) noexcept {
     // Print CPU mode, paging mode and code segment size
     CPUMode cpuMode = getCPUMode(vp);
     PagingMode pagingMode = getPagingMode(vp);
-    SegmentSize segmentSize = getSegmentBitSize(vp, Reg::CS);
+    SegmentSize segmentSize = getSegmentSize(vp, Reg::CS);
 
     switch (cpuMode) {
     case CPUMode::RealAddress: printf("Real-address mode"); break;
