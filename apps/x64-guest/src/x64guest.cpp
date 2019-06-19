@@ -225,8 +225,8 @@ int main(int argc, char* argv[]) {
     // We'll set up our page table at 0x0 and use 0x10000 as the base of our stack, just below the user program.
     {
         RegValue edi, esp;
-        edi.u32 = 0x0;
-        esp.u32 = 0x10000;
+        edi.u64 = 0x0;
+        esp.u64 = 0x10000;
         vp.RegWrite(Reg::EDI, edi);
         vp.RegWrite(Reg::ESP, esp);
     }
