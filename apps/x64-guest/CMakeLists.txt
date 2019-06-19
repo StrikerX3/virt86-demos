@@ -1,6 +1,5 @@
-# Basic demo of the virt86 library which tests several basic features of
-# virtualization platforms, including some optional features such as guest
-# debugging and dirty page tracking.
+# Creates a virtual machine that switches to 64-bit mode from real mode.
+# Based on instruction from https://wiki.osdev.org/Entering_Long_Mode_Directly
 # -------------------------------------------------------------------------------
 # MIT License
 # 
@@ -23,7 +22,7 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
-project(virt86-basic-demo VERSION 1.0.0 LANGUAGES CXX)
+project(virt86-x64-guest VERSION 1.0.0 LANGUAGES CXX)
 
 include(GNUInstallDirs)
 
@@ -47,9 +46,9 @@ file(GLOB_RECURSE public_headers
 ##############################
 # Project structure
 #
-add_executable(virt86-basic-demo ${sources} ${private_headers} ${public_headers})
+add_executable(virt86-x64-guest ${sources} ${private_headers} ${public_headers})
 
-target_include_directories(virt86-basic-demo
+target_include_directories(virt86-x64-guest
     PUBLIC
         $<INSTALL_INTERFACE:include>
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
@@ -58,8 +57,8 @@ target_include_directories(virt86-basic-demo
 )
 
 find_package(virt86 CONFIG REQUIRED)
-target_link_libraries(virt86-basic-demo PUBLIC virt86::virt86)
-target_link_libraries(virt86-basic-demo PUBLIC virt86-demo-common)
+target_link_libraries(virt86-x64-guest PUBLIC virt86::virt86)
+target_link_libraries(virt86-x64-guest PUBLIC virt86-demo-common)
 
 if(MSVC)
     vs_set_filters(BASE_DIR src FILTER_ROOT "Sources" SOURCES ${sources})

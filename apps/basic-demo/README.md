@@ -1,6 +1,6 @@
 # Basic demo
 
-This applications demonstrates basic usage of a number of features provided by virt86.
+This application demonstrates basic usage of a number of features provided by virt86.
 
 It selects the first platform available in the system and creates a virtual machine with one processor, 64 KiB of ROM at 0xFFFF0000 and 1 MiB of RAM at 0x00000000. No other hardware is emulated.
 
