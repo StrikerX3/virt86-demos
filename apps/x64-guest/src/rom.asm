@@ -45,7 +45,7 @@ SwitchToLongMode:
     lea eax, [es:di + 0x2000]         ; Put the address of the Page Directory in to EAX.
     or eax, PAGE_PRESENT | PAGE_WRITE ; Or EAX with the flags - present flag, writable flag.
     mov [es:di + 0x1000], eax         ; Store the value of EAX as the first PDPTE.
-    mov [es:di + 0x1018], eax         ; Store the value of EAX as the 0x18'th PDPTE.
+    mov [es:di + 0x1018], eax         ; Store the value of EAX as the fourth PDPTE.
  
     ; Build the Page Directory.
     lea eax, [es:di + 0x3000]         ; Put the address of the Page Table in to EAX.
