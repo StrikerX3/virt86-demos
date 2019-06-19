@@ -262,23 +262,31 @@ int main(int argc, char* argv[]) {
     
     // Debugging
     {
+		printf("Final VCPU state:\n");
+		printRegs(vp);
+		printf("\n");
+
+		printf("Linear memory address translations:\n");
         printAddressTranslation(vp, 0x00000000);
         printAddressTranslation(vp, 0x00010000);
         printAddressTranslation(vp, 0xffff0000);
         printAddressTranslation(vp, 0xffff00e8);
         printf("\n");
+
+		uint64_t stackVal;
+		if (vp.LMemRead(0x200000 - 8, sizeof(uint64_t), &stackVal)) {
+			printf("Value written to stack: 0x%016" PRIx64 "\n", stackVal);
+		}
         
         RegValue gdtr, idtr;
         vp.RegRead(Reg::GDTR, gdtr);
         vp.RegRead(Reg::IDTR, idtr);
 
-        GDTEntry gdtCode;
-        auto st = vp.GetGDTEntry(0x0008, gdtCode);
-        printf("Code GDT: base=0x%08x, limit=0x%08x, access=0x%02x, flags=0x%x\n", gdtCode.GetBase(), gdtCode.GetLimit(), gdtCode.data.access.u8, gdtCode.data.flags);
-        printf("\n");
-
-        printRegs(vp);
-        printf("\n");
+        GDTEntry gdtCode, gdtData;
+		vp.GetGDTEntry(0x0008, gdtCode);
+		vp.GetGDTEntry(0x0010, gdtData);
+		printf("Code GDT: base=0x%08x, limit=0x%08x, access=0x%02x, flags=0x%x\n", gdtCode.GetBase(), gdtCode.GetLimit(), gdtCode.data.access.u8, gdtCode.data.flags);
+		printf("Data GDT: base=0x%08x, limit=0x%08x, access=0x%02x, flags=0x%x\n", gdtData.GetBase(), gdtData.GetLimit(), gdtData.data.access.u8, gdtData.data.flags);
     }
 
     // ----- Cleanup ----------------------------------------------------------------------------------------------------------
