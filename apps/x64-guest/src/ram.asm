@@ -6,6 +6,9 @@
 org 0x10000
 
 Entry:
-    ; Simply die for now
+    ; Do a simple read for now
+	mov rax, [0x10000]
+
+    ; We're done
     cli
     hlt

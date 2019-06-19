@@ -116,7 +116,6 @@ SwitchToLongMode:
  
     jmp dword CODE_SEG:LongMode       ; Load CS with 64 bit segment and flush the instruction cache
  	; TODO: check why HAXM ignores this
-	; TODO: check why WHPX dies here (apparently trying to read the second GDT entry via MMIO?)
  
     ; Global Descriptor Table
 ALIGN 16
@@ -125,9 +124,7 @@ GDT:
     dq 0x0000000000000000             ; Null Descriptor - should be present.
  
 .Code:
-;    dq 0x00AF9A000000FFFF             ; 64-bit code descriptor (exec/read).
-;    dq 0x00CF92000000FFFF             ; 64-bit data descriptor (read/write).
-    dq 0x00209A0000000000             ; 64-bit code descriptor (exec/read).
+    dq 0x00209B0000000000             ; 64-bit code descriptor (exec/read).
     dq 0x0000920000000000             ; 64-bit data descriptor (read/write).
  
 .End:
