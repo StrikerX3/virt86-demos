@@ -106,7 +106,6 @@ SwitchToLongMode:
  
     or eax, 0x00000100                ; Set the LME bit.
     wrmsr
-	; TODO: check why HAXM ignores this
  
     mov ebx, cr0                      ; Activate long mode -
     or ebx, 0x80000001                ; - by enabling paging and protection simultaneously.
@@ -115,7 +114,6 @@ SwitchToLongMode:
     o32 lgdt [cs:GDT.Pointer]         ; Load GDT.Pointer defined below.
  
     jmp dword CODE_SEG:LongMode       ; Load CS with 64 bit segment and flush the instruction cache
- 	; TODO: check why HAXM ignores this
  
     ; Global Descriptor Table
 ALIGN 16
@@ -125,7 +123,7 @@ GDT:
  
 .Code:
     dq 0x00209B0000000000             ; 64-bit code descriptor (exec/read).
-    dq 0x0000920000000000             ; 64-bit data descriptor (read/write).
+    dq 0x0000930000000000             ; 64-bit data descriptor (read/write).
  
 .End:
 ALIGN 4
@@ -144,7 +142,7 @@ LongMode:
     mov fs, ax
     mov gs, ax
     mov ss, ax
- 
+    
     ; Jump to program entry point in RAM
     mov rax, 0x10000
     jmp rax
