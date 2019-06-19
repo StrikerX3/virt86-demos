@@ -265,6 +265,7 @@ int main(int argc, char* argv[]) {
         printAddressTranslation(vp, 0x00000000);
         printAddressTranslation(vp, 0x00010000);
         printAddressTranslation(vp, 0xffff0000);
+        printAddressTranslation(vp, 0xffff00e8);
         printf("\n");
         
         RegValue gdtr, idtr;
@@ -273,7 +274,7 @@ int main(int argc, char* argv[]) {
 
         GDTEntry gdtCode;
         auto st = vp.GetGDTEntry(0x0008, gdtCode);
-        printf("Code GDT: base=0x%08x, limit=0x%08x\n", gdtCode.GetBase(), gdtCode.GetLimit());
+        printf("Code GDT: base=0x%08x, limit=0x%08x, access=0x%02x, flags=0x%x\n", gdtCode.GetBase(), gdtCode.GetLimit(), gdtCode.data.access.u8, gdtCode.data.flags);
         printf("\n");
 
         printRegs(vp);
