@@ -134,8 +134,9 @@ ALIGN 4
     dd GDT                            ; 32-bit Base Address of GDT. (CPU will zero extend to 64-bit)
  
  
-[BITS 64]      
+[BITS 64]
 LongMode:
+    ; Load segments
     mov ax, DATA_SEG
     mov ds, ax
     mov es, ax
@@ -143,6 +144,10 @@ LongMode:
     mov gs, ax
     mov ss, ax
     
+    ; Put the stack at the top of RAM
+    mov rsp, 0x200000
+    mov rbp, rsp
+ 
     ; Jump to program entry point in RAM
     mov rax, 0x10000
     jmp rax
