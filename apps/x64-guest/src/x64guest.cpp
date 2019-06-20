@@ -225,8 +225,8 @@ int main(int argc, char* argv[]) {
     // We'll set up our page table at 0x0 and use 0x10000 as the base of our stack, just below the user program.
     {
         RegValue edi, esp;
-        edi.u64 = 0x0;
-        esp.u64 = 0x10000;
+        edi.u32 = 0x0;
+        esp.u32 = 0x10000;
         vp.RegWrite(Reg::EDI, edi);
         vp.RegWrite(Reg::ESP, esp);
     }
@@ -259,7 +259,9 @@ int main(int argc, char* argv[]) {
             break;
         }
     }
-    
+
+    printf("\n");
+
     // Debugging
     {
 		printf("Final VCPU state:\n");
@@ -287,11 +289,11 @@ int main(int argc, char* argv[]) {
 		vp.GetGDTEntry(0x0010, gdtData);
 		printf("Code GDT: base=0x%08x, limit=0x%08x, access=0x%02x, flags=0x%x\n", gdtCode.GetBase(), gdtCode.GetLimit(), gdtCode.data.access.u8, gdtCode.data.flags);
 		printf("Data GDT: base=0x%08x, limit=0x%08x, access=0x%02x, flags=0x%x\n", gdtData.GetBase(), gdtData.GetLimit(), gdtData.data.access.u8, gdtData.data.flags);
+        
+        printf("\n");
     }
 
     // ----- Cleanup ----------------------------------------------------------------------------------------------------------
-
-    printf("\n");
    
     // Free VM
     printf("Releasing VM... ");
