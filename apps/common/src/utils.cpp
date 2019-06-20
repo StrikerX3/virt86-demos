@@ -45,23 +45,3 @@ const char *reason_str(virt86::VMExitReason reason) noexcept {
     default: return "Unknown/unexpected reason";
     }
 }
-
-bool loadSegment(virt86::VirtualProcessor& vp, uint16_t selector, virt86::RegValue& value) noexcept {
-    // Get GDT entry from memory
-    virt86::RegValue gdt;
-    if (vp.RegRead(virt86::Reg::GDTR, gdt) != virt86::VPOperationStatus::OK) {
-        return false;
-    }
-    virt86::GDTEntry gdtEntry;
-    if (!vp.MemRead(gdt.table.base + (selector & 0xfff8), sizeof(virt86::GDTEntry), &gdtEntry)) {
-        return false;
-    }
-
-    // Fill in segment info with data from the GDT entry
-    value.segment.selector = selector;
-    value.segment.attributes.u16 = gdtEntry.data.access.u8 | (gdtEntry.data.flags << 12);
-    value.segment.base = gdtEntry.GetBase();
-    value.segment.limit = gdtEntry.GetLimit();
-
-    return true;
-}

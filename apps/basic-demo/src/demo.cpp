@@ -634,7 +634,7 @@ int main() {
     {
         // Do the jmp dword 0x8:0xffffff00 manually
         RegValue cs;
-        if (!loadSegment(vp, 0x0008, cs)) {
+        if (vp.ReadSegment(0x0008, cs) != VPOperationStatus::OK) {
             printf("Failed to load segment data for selector 0x0008\n");
             return -1;
         }
@@ -672,7 +672,7 @@ int main() {
         };
 
         for (int i = 5; i < 8; i++) {
-            if (!loadSegment(vp, 0x0010, values[i])) {
+            if (vp.ReadSegment(0x0010, values[i]) != VPOperationStatus::OK) {
                 printf("Failed to load segment data for selector 0x0010\n");
                 return -1;
             }

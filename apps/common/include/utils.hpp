@@ -33,5 +33,3 @@ constexpr size_t array_size(T(&)[N]) {
 }
 
 const char *reason_str(virt86::VMExitReason reason) noexcept;
-
-bool loadSegment(virt86::VirtualProcessor& vp, uint16_t selector, virt86::RegValue& value) noexcept;
