@@ -118,7 +118,7 @@ int main(int argc, char* argv[]) {
     len = ftell(fp);
     fseek(fp, 0, SEEK_SET);
     if (len > ramSize - ramProgramBase) {
-        printf("fatal: RAM file size must be no larger than %ud bytes\n", ramSize - ramProgramBase);
+        printf("fatal: RAM file size must be no larger than %llu bytes\n", ramSize - ramProgramBase);
         return -1;
     }
 
@@ -287,9 +287,9 @@ int main(int argc, char* argv[]) {
         GDTEntry gdtCode, gdtData;
 		vp.GetGDTEntry(0x0008, gdtCode);
 		vp.GetGDTEntry(0x0010, gdtData);
-		printf("Code GDT: base=0x%08x, limit=0x%08x, access=0x%02x, flags=0x%x\n", gdtCode.GetBase(), gdtCode.GetLimit(), gdtCode.data.access.u8, gdtCode.data.flags);
-		printf("Data GDT: base=0x%08x, limit=0x%08x, access=0x%02x, flags=0x%x\n", gdtData.GetBase(), gdtData.GetLimit(), gdtData.data.access.u8, gdtData.data.flags);
-        
+		printf("Code GDT: base=0x%08x, limit=0x%08x, access=0x%02x, flags=0x%x\n", gdtCode.gdt.GetBase(), gdtCode.gdt.GetLimit(), gdtCode.gdt.data.access.u8, gdtCode.gdt.data.flags);
+		printf("Data GDT: base=0x%08x, limit=0x%08x, access=0x%02x, flags=0x%x\n", gdtData.gdt.GetBase(), gdtData.gdt.GetLimit(), gdtData.gdt.data.access.u8, gdtData.gdt.data.flags);
+
         printf("\n");
     }
 

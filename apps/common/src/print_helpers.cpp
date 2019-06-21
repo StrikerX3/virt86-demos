@@ -267,18 +267,89 @@ void printSeg(VirtualProcessor& vp, Reg seg) noexcept {
 	RegValue value;
 	vp.RegRead(seg, value);
 
-	const char *padding;
+	// In IA-32e mode:
+	// - Limit is ignored for CS, SS, DS, ES, FS and GS (effectively giving access to the entire memory)
+	// - CS, SS, DS, ES all have base addresses of 0
+	// - FS and GS have their base addresses stored in MSRs
+	// - LDT and TSS entries are extended to 16 bytes to accomodate a 64-bit base address
+
 	if (mode == CPUMode::IA32e) {
-		padding = "        ";
+		if (seg == Reg::LDTR || seg == Reg::TR) {
+			printf("%04" PRIx16 " -> %016" PRIx64 ":%08" PRIx32 " [%04" PRIx16 "] ", value.segment.selector, value.segment.base, value.segment.limit, value.segment.attributes.u16);
+		}
+		else {
+			printf("%04" PRIx16 " -> %016" PRIx64 "          [%04" PRIx16 "] ", value.segment.selector, value.segment.base, value.segment.attributes.u16);
+		}
 	}
 	else {
-		padding = "";
+		switch (size) {
+		case SegmentSize::_16: printf("%04" PRIx16 " -> %08" PRIx32 ":%04" PRIx16 "     [%04" PRIx16 "] ", value.segment.selector, (uint32_t)value.segment.base, (uint16_t)value.segment.limit, value.segment.attributes.u16); break;
+		case SegmentSize::_32: printf("%04" PRIx16 " -> %08" PRIx32 ":%08" PRIx32 " [%04" PRIx16 "] ", value.segment.selector, (uint32_t)value.segment.base, value.segment.limit, value.segment.attributes.u16); break;
+		}
 	}
 
-	switch (size) {
-	case SegmentSize::_16: printf("%04" PRIx16 " -> %s%08" PRIx32 ":%04" PRIx16 "     [%04" PRIx16 "]", value.segment.selector, padding, (uint32_t)value.segment.base, (uint16_t)value.segment.limit, value.segment.attributes.u16); break;
-	case SegmentSize::_32: printf("%04" PRIx16 " -> %s%08" PRIx32 ":%08" PRIx32 " [%04" PRIx16 "]", value.segment.selector, padding, (uint32_t)value.segment.base, value.segment.limit, value.segment.attributes.u16); break;
-	case SegmentSize::_64: printf("%04" PRIx16 " -> %016" PRIx64 ":%08" PRIx32 " [%04" PRIx16 "]", value.segment.selector, value.segment.base, value.segment.limit, value.segment.attributes.u16); break;
+	// Print attributes
+	if (value.segment.attributes.present) {
+		if (value.segment.attributes.system) {
+			if (value.segment.attributes.type & SEG_TYPE_CODE) {
+				if (mode == CPUMode::IA32e && value.segment.attributes.longMode) printf("64-bit code");
+				else if (value.segment.attributes.defaultSize) printf("32-bit code");
+				else printf("16-bit code");
+			}
+			else {
+				if (mode == CPUMode::IA32e) printf("64-bit data");
+				else if (value.segment.attributes.defaultSize) printf("32-bit data");
+				else printf("16-bit data");
+			}
+		}
+		else {
+			if (mode == CPUMode::IA32e) {
+				switch (value.segment.attributes.type) {
+				case 0b0010: printf("LDT"); break;
+				case 0b1001: printf("64-bit TSS (available)"); break;
+				case 0b1011: printf("64-bit TSS (busy)"); break;
+				case 0b1100: printf("64-bit call gate"); break;
+				case 0b1110: printf("64-bit interrupt gate"); break;
+				case 0b1111: printf("64-bit trap gate"); break;
+				default: printf("Reserved"); break;
+				}
+			}
+			else {
+				switch (value.segment.attributes.type) {
+				case 0b0010: printf("LDT"); break;
+				case 0b0001: printf("16-bit TSS (available)"); break;
+				case 0b0011: printf("16-bit TSS (busy)"); break;
+				case 0b0100: printf("16-bit call gate"); break;
+				case 0b0110: printf("16-bit interrupt gate"); break;
+				case 0b0111: printf("16-bit trap gate"); break;
+				case 0b0101: printf("Task gate"); break;
+				case 0b1001: printf("32-bit TSS (available)"); break;
+				case 0b1011: printf("32-bit TSS (busy)"); break;
+				case 0b1100: printf("32-bit call gate"); break;
+				case 0b1110: printf("32-bit interrupt gate"); break;
+				case 0b1111: printf("32-bit trap gate"); break;
+				default: printf("Reserved"); break;
+				}
+			}
+		}
+		
+		printf(" (");
+		printf((value.segment.attributes.granularity) ? "G=page" : "G=byte");
+		printf(" DPL=%u", value.segment.attributes.privilegeLevel);
+		if (value.segment.attributes.system) {
+			if (value.segment.attributes.type & SEG_TYPE_CODE) {
+				if (value.segment.attributes.type & SEG_TYPE_READABLE) printf(" R-X"); else printf(" --X");
+				if (value.segment.attributes.type & SEG_TYPE_ACCESSED) printf("A"); else printf("-");
+				if (value.segment.attributes.type & SEG_TYPE_CONFORMING) printf(" conforming");
+			}
+			else {
+				if (value.segment.attributes.type & SEG_TYPE_WRITABLE) printf(" RW-"); else printf(" R--");
+				if (value.segment.attributes.type & SEG_TYPE_ACCESSED) printf("A"); else printf("-");
+				if (value.segment.attributes.type & SEG_TYPE_EXPANDDOWN) printf(" expand-down");
+			}
+		}
+		if (value.segment.attributes.available) printf(" AVL");
+		printf(")");
 	}
 }
 
@@ -297,17 +368,25 @@ void printTable(VirtualProcessor& vp, Reg table) noexcept {
 
 #define READREG(code, name) RegValue name; vp.RegRead(code, name);
 void printSegAndTableRegs(VirtualProcessor& vp) noexcept {
-	READREG(Reg::CS, cs); READREG(Reg::SS, ss);
-	READREG(Reg::DS, ds); READREG(Reg::ES, es);
-	READREG(Reg::FS, fs); READREG(Reg::GS, gs);
-	READREG(Reg::LDTR, ldtr); READREG(Reg::TR, tr);
+	READREG(Reg::CS, cs);
+	READREG(Reg::SS, ss);
+	READREG(Reg::DS, ds);
+	READREG(Reg::ES, es);
+	READREG(Reg::FS, fs);
+	READREG(Reg::GS, gs);
+	READREG(Reg::TR, tr);
+	READREG(Reg::LDTR, ldtr);
 	READREG(Reg::GDTR, gdtr);
 	READREG(Reg::IDTR, idtr);
 	
-	printf("  CS = "); printSeg(vp, Reg::CS); printf("   SS = "); printSeg(vp, Reg::SS); printf("\n");
-	printf("  DS = "); printSeg(vp, Reg::DS); printf("   ES = "); printSeg(vp, Reg::ES); printf("\n");
-	printf("  FS = "); printSeg(vp, Reg::FS); printf("   GS = "); printSeg(vp, Reg::GS); printf("\n");
-	printf("LDTR = "); printSeg(vp, Reg::LDTR); printf("   TR = "); printSeg(vp, Reg::TR); printf("\n");
+	printf("  CS = "); printSeg(vp, Reg::CS); printf("\n");
+	printf("  SS = "); printSeg(vp, Reg::SS); printf("\n");
+	printf("  DS = "); printSeg(vp, Reg::DS); printf("\n");
+	printf("  ES = "); printSeg(vp, Reg::ES); printf("\n");
+	printf("  FS = "); printSeg(vp, Reg::FS); printf("\n");
+	printf("  GS = "); printSeg(vp, Reg::GS); printf("\n");
+	printf("  TR = "); printSeg(vp, Reg::TR); printf("\n");
+	printf("LDTR = "); printSeg(vp, Reg::LDTR); printf("\n");
 	printf("GDTR =         "); printTable(vp, Reg::GDTR); printf("\n");
 	printf("IDTR =         "); printTable(vp, Reg::IDTR); printf("\n");
 }
