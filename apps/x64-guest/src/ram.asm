@@ -6,7 +6,7 @@
 org 0x10000
 
 Entry:
-    ; Do a simple read for now
+    ; Do a simple read
 	mov rax, [0x10000]
     
     ; Test the stack
@@ -19,6 +19,12 @@ Entry:
 
     ; Test new memory allocated by the host
     mov rsi, 0x100000000
+    mov rax, [rsi]
+
+    ; Let the host manipulate the page tables again
+    hlt
+
+    ; Test modification by the host
     mov rax, [rsi]
 
     ; We're done

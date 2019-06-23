@@ -264,12 +264,13 @@ int main(int argc, char* argv[]) {
 
     // Map a page of memory to the guest and write some data to be read by the guest in order to check if the mapping worked
 
-    // Value written to the newly allocated page
-    const static uint64_t checkValue = 0xfedcba9876543210;
+    // Values written to the newly allocated pages
+    const static uint64_t checkValue1 = 0xfedcba9876543210;
+    const static uint64_t checkValue2 = 0x0123456789abcdef;
 
     // Allocate host memory for the new page and write the check value to its base address
     const uint64_t moreRamBase = 0x11800024000;  // This can be any physical address that's not already occupied by RAM or ROM; must be page-aligned
-    const size_t moreRamSize = PAGE_SIZE;
+    const size_t moreRamSize = PAGE_SIZE * 2;
     uint8_t* moreRam = alignedAlloc(moreRamSize);
     if (moreRam == NULL) {
         printf("fatal: failed to allocate memory for additional RAM\n");
@@ -277,7 +278,8 @@ int main(int argc, char* argv[]) {
     }
     memset(moreRam, 0, moreRamSize);
     printf("Additional RAM allocated: %u bytes\n", moreRamSize);
-    memcpy(moreRam, &checkValue, sizeof(checkValue));
+    memcpy(moreRam, &checkValue1, sizeof(checkValue1));
+    memcpy(moreRam + PAGE_SIZE, &checkValue2, sizeof(checkValue2));
 
     // Map the memory to the guest at the desired base address
     printf("Mapping additional RAM... ");
@@ -324,7 +326,53 @@ int main(int argc, char* argv[]) {
             {
                 RegValue rax;
                 vp.RegRead(Reg::RAX, rax);
-                if (rax.u64 == checkValue) {
+                if (rax.u64 == checkValue1) {
+                    printf("Got the right value\n");
+                }
+            }
+            running = false;
+            break;
+        case VMExitReason::Shutdown:
+            printf("VCPU shutting down\n");
+            running = false;
+            break;
+        case VMExitReason::Error:
+            printf("VCPU execution failed\n");
+            running = false;
+            break;
+        }
+    }
+
+    printf("\n");
+
+    // Update page mapping to point to the second page of the newly allocated RAM
+    *(uint64_t*)&ram[0x6000] = ((moreRamBase & ~0xFFF) + 0x1000) | 0x23;   // PTE -> physical address
+
+    // Display new address translation
+    printf("Page mapping updated:\n");
+    printAddressTranslation(vp, 0x100000000);
+    printf("\n");
+
+    // Run until HLT is reached
+    running = true;
+    while (running) {
+        auto execStatus = vp.Run();
+        if (execStatus != VPExecutionStatus::OK) {
+            printf("Virtual CPU execution failed\n");
+            break;
+        }
+
+        printRegs(vp);
+        printf("\n");
+
+        auto& exitInfo = vp.GetVMExitInfo();
+        switch (exitInfo.reason) {
+        case VMExitReason::HLT:
+            printf("HLT reached\n");
+            {
+                RegValue rax;
+                vp.RegRead(Reg::RAX, rax);
+                if (rax.u64 == checkValue2) {
                     printf("Got the right value\n");
                 }
             }
