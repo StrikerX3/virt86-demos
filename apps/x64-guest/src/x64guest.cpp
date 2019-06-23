@@ -246,7 +246,88 @@ int main(int argc, char* argv[]) {
         auto& exitInfo = vp.GetVMExitInfo();
         switch (exitInfo.reason) {
         case VMExitReason::HLT:
-            printf("HLT reached; quitting\n");
+            printf("HLT reached\n");
+            running = false;
+            break;
+        case VMExitReason::Shutdown:
+            printf("VCPU shutting down\n");
+            running = false;
+            break;
+        case VMExitReason::Error:
+            printf("VCPU execution failed\n");
+            running = false;
+            break;
+        }
+    }
+
+    printf("\n");
+
+    // Map a page of memory to the guest and write some data to be read by the guest in order to check if the mapping worked
+
+    // Value written to the newly allocated page
+    const static uint64_t checkValue = 0xfedcba9876543210;
+
+    // Allocate host memory for the new page and write the check value to its base address
+    const uint64_t moreRamBase = 0x11800024000;  // This can be any physical address that's not already occupied by RAM or ROM; must be page-aligned
+    const size_t moreRamSize = PAGE_SIZE;
+    uint8_t* moreRam = alignedAlloc(moreRamSize);
+    if (moreRam == NULL) {
+        printf("fatal: failed to allocate memory for additional RAM\n");
+        return -1;
+    }
+    memset(moreRam, 0, moreRamSize);
+    printf("Additional RAM allocated: %u bytes\n", moreRamSize);
+    memcpy(moreRam, &checkValue, sizeof(checkValue));
+
+    // Map the memory to the guest at the desired base address
+    printf("Mapping additional RAM... ");
+    memMapStatus = vm.MapGuestMemory(moreRamBase, moreRamSize, MemoryFlags::Read | MemoryFlags::Write | MemoryFlags::Execute, moreRam);
+    switch (memMapStatus) {
+    case MemoryMappingStatus::OK: printf("succeeded\n"); break;
+    case MemoryMappingStatus::Unsupported: printf("failed: unsupported operation\n"); return -1;
+    case MemoryMappingStatus::MisalignedHostMemory: printf("failed: memory host block is misaligned\n"); return -1;
+    case MemoryMappingStatus::MisalignedAddress: printf("failed: base address is misaligned\n"); return -1;
+    case MemoryMappingStatus::MisalignedSize: printf("failed: size is misaligned\n"); return -1;
+    case MemoryMappingStatus::EmptyRange: printf("failed: size is zero\n"); return -1;
+    case MemoryMappingStatus::AlreadyAllocated: printf("failed: host memory block is already allocated\n"); return -1;
+    case MemoryMappingStatus::InvalidFlags: printf("failed: invalid flags supplied\n"); return -1;
+    case MemoryMappingStatus::Failed: printf("failed\n"); return -1;
+    default: printf("failed: unhandled reason (%d)\n", static_cast<int>(memMapStatus)); return -1;
+    }
+
+    // Map the newly added physical page to linear address 0x100000000
+    // PML4E for that virtual address already exists
+    *(uint64_t*)&ram[0x1020] = 0x5023;  // PDPTE -> PDE at 0x5000
+    *(uint64_t*)&ram[0x5000] = 0x6023;  // PDE -> PTE at 0x6000
+    *(uint64_t*)&ram[0x6000] = (moreRamBase & ~0xFFF) | 0x23;   // PTE -> physical address
+
+    // Display linear-to-physical address translation of the new page
+    printAddressTranslation(vp, 0x100000000);
+    printf("\n");
+
+    // Run until HLT is reached
+    running = true;
+    while (running) {
+        auto execStatus = vp.Run();
+        if (execStatus != VPExecutionStatus::OK) {
+            printf("Virtual CPU execution failed\n");
+            break;
+        }
+
+        printRegs(vp);
+        printf("\n");
+
+        auto& exitInfo = vp.GetVMExitInfo();
+        switch (exitInfo.reason) {
+        case VMExitReason::HLT:
+            printf("HLT reached\n");
+            {
+                RegValue rax;
+                vp.RegRead(Reg::RAX, rax);
+                if (rax.u64 == checkValue) {
+                    printf("Got the right value\n");
+                }
+            }
             running = false;
             break;
         case VMExitReason::Shutdown:
@@ -273,6 +354,7 @@ int main(int argc, char* argv[]) {
         printAddressTranslation(vp, 0x00010000);
         printAddressTranslation(vp, 0xffff0000);
         printAddressTranslation(vp, 0xffff00e8);
+        printAddressTranslation(vp, 0x100000000);
         printf("\n");
 
 		uint64_t stackVal;
