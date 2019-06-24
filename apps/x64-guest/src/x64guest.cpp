@@ -186,7 +186,8 @@ int main(int argc, char* argv[]) {
     case MemoryMappingStatus::AlreadyAllocated: printf("failed: host memory block is already allocated\n"); return -1;
     case MemoryMappingStatus::InvalidFlags: printf("failed: invalid flags supplied\n"); return -1;
     case MemoryMappingStatus::Failed: printf("failed\n"); return -1;
-    default: printf("failed: unhandled reason (%d)\n", static_cast<int>(memMapStatus)); return -1;
+	case MemoryMappingStatus::OutOfBounds: printf("out of bounds\n"); return -1;
+	default: printf("failed: unhandled reason (%d)\n", static_cast<int>(memMapStatus)); return -1;
     }
 
     // Map RAM to the bottom of the 32-bit address range
@@ -202,7 +203,8 @@ int main(int argc, char* argv[]) {
     case MemoryMappingStatus::AlreadyAllocated: printf("failed: host memory block is already allocated\n"); return -1;
     case MemoryMappingStatus::InvalidFlags: printf("failed: invalid flags supplied\n"); return -1;
     case MemoryMappingStatus::Failed: printf("failed\n"); return -1;
-    default: printf("failed: unhandled reason (%d)\n", static_cast<int>(memMapStatus)); return -1;
+	case MemoryMappingStatus::OutOfBounds: printf("out of bounds\n"); return -1;
+	default: printf("failed: unhandled reason (%d)\n", static_cast<int>(memMapStatus)); return -1;
     }
 
     // Get the virtual processor
@@ -269,7 +271,7 @@ int main(int argc, char* argv[]) {
     const static uint64_t checkValue2 = 0x0123456789abcdef;
 
     // Allocate host memory for the new page and write the check value to its base address
-    const uint64_t moreRamBase = 0x11800024000;  // This can be any physical address that's not already occupied by RAM or ROM; must be page-aligned
+    const uint64_t moreRamBase = 0x0000'007F'FFFF'E000;  // This can be any guest physical address within the host's limits that's not already occupied by RAM or ROM; must be page-aligned
     const size_t moreRamSize = PAGE_SIZE * 2;
     uint8_t* moreRam = alignedAlloc(moreRamSize);
     if (moreRam == NULL) {
@@ -293,15 +295,16 @@ int main(int argc, char* argv[]) {
     case MemoryMappingStatus::EmptyRange: printf("failed: size is zero\n"); return -1;
     case MemoryMappingStatus::AlreadyAllocated: printf("failed: host memory block is already allocated\n"); return -1;
     case MemoryMappingStatus::InvalidFlags: printf("failed: invalid flags supplied\n"); return -1;
-    case MemoryMappingStatus::Failed: printf("failed\n"); return -1;
+	case MemoryMappingStatus::Failed: printf("failed\n"); return -1;
+	case MemoryMappingStatus::OutOfBounds: printf("out of bounds\n"); return -1;
     default: printf("failed: unhandled reason (%d)\n", static_cast<int>(memMapStatus)); return -1;
     }
 
     // Map the newly added physical page to linear address 0x100000000
     // PML4E for that virtual address already exists
-    *(uint64_t*)&ram[0x1020] = 0x5023;  // PDPTE -> PDE at 0x5000
-    *(uint64_t*)&ram[0x5000] = 0x6023;  // PDE -> PTE at 0x6000
-    *(uint64_t*)&ram[0x6000] = (moreRamBase & ~0xFFF) | 0x23;   // PTE -> physical address
+	*(uint64_t*)&ram[0x1020] = 0x5023;  // PDPTE -> PDE at 0x5000
+	*(uint64_t*)&ram[0x5000] = 0x6023;  // PDE -> PTE at 0x6000
+	*(uint64_t*)&ram[0x6000] = (moreRamBase & ~0xFFF) | 0x23;   // PTE -> physical address
 
     // Display linear-to-physical address translation of the new page
     printAddressTranslation(vp, 0x100000000);
@@ -346,7 +349,7 @@ int main(int argc, char* argv[]) {
     printf("\n");
 
     // Update page mapping to point to the second page of the newly allocated RAM
-    *(uint64_t*)&ram[0x6000] = ((moreRamBase & ~0xFFF) + 0x1000) | 0x23;   // PTE -> physical address
+	*(uint64_t*)&ram[0x6000] = ((moreRamBase & ~0xFFF) + 0x1000) | 0x23;   // PTE -> physical address
 
     // Display new address translation
     printf("Page mapping updated:\n");

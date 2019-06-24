@@ -417,7 +417,8 @@ int main() {
     printf("Features:\n");
     auto& features = platform.GetFeatures();
     printf("  Maximum number of VCPUs: %u per VM, %u global\n", features.maxProcessorsPerVM, features.maxProcessorsGlobal);
-    printf("  Unrestricted guest: %s\n", (features.unrestrictedGuest) ? "supported" : "unsuported");
+	printf("  Maximum guest physical address: 0x%llx\n", HostInfo.gpa.maxAddress);
+	printf("  Unrestricted guest: %s\n", (features.unrestrictedGuest) ? "supported" : "unsuported");
     printf("  Extended Page Tables: %s\n", (features.extendedPageTables) ? "supported" : "unsuported");
     printf("  Guest debugging: %s\n", (features.guestDebugging) ? "available" : "unavailable");
     printf("  Memory protection: %s\n", (features.guestMemoryProtection) ? "available" : "unavailable");
@@ -516,7 +517,8 @@ int main() {
     case MemoryMappingStatus::AlreadyAllocated: printf("failed: host memory block is already allocated\n"); return -1;
     case MemoryMappingStatus::InvalidFlags: printf("failed: invalid flags supplied\n"); return -1;
     case MemoryMappingStatus::Failed: printf("failed\n"); return -1;
-    default: printf("failed: unhandled reason (%d)\n", static_cast<int>(memMapStatus)); return -1;
+	case MemoryMappingStatus::OutOfBounds: printf("out of bounds\n"); return -1;
+	default: printf("failed: unhandled reason (%d)\n", static_cast<int>(memMapStatus)); return -1;
     }
 
     // Alias ROM to the top of the 31-bit address range if supported
@@ -534,7 +536,8 @@ int main() {
         case MemoryMappingStatus::AlreadyAllocated: printf("failed: host memory block is already allocated\n"); return -1;
         case MemoryMappingStatus::InvalidFlags: printf("failed: invalid flags supplied\n"); return -1;
         case MemoryMappingStatus::Failed: printf("failed\n"); return -1;
-        default: printf("failed: unhandled reason (%d)\n", static_cast<int>(memMapStatus)); return -1;
+		case MemoryMappingStatus::OutOfBounds: printf("out of bounds\n"); return -1;
+		default: printf("failed: unhandled reason (%d)\n", static_cast<int>(memMapStatus)); return -1;
         }
     }
 
@@ -551,7 +554,8 @@ int main() {
     case MemoryMappingStatus::AlreadyAllocated: printf("failed: host memory block is already allocated\n"); return -1;
     case MemoryMappingStatus::InvalidFlags: printf("failed: invalid flags supplied\n"); return -1;
     case MemoryMappingStatus::Failed: printf("failed\n"); return -1;
-    default: printf("failed: unhandled reason (%d)\n", static_cast<int>(memMapStatus)); return -1;
+	case MemoryMappingStatus::OutOfBounds: printf("out of bounds\n"); return -1;
+	default: printf("failed: unhandled reason (%d)\n", static_cast<int>(memMapStatus)); return -1;
     }
 
     // Get the virtual processor
