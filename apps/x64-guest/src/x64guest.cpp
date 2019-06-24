@@ -271,8 +271,9 @@ int main(int argc, char* argv[]) {
     const static uint64_t checkValue2 = 0x0123456789abcdef;
 
     // Allocate host memory for the new page and write the check value to its base address
-    const uint64_t moreRamBase = 0x0000'007F'FFFF'E000;  // This can be any guest physical address within the host's limits that's not already occupied by RAM or ROM; must be page-aligned
+    // We allocate near the top of the maximum supported GPA, with one page of breathing room because HAXM doesn't let us use the last page
     const size_t moreRamSize = PAGE_SIZE * 2;
+    const uint64_t moreRamBase = features.guestPhysicalAddress.maxAddress - moreRamSize - 0x1000;
     uint8_t* moreRam = alignedAlloc(moreRamSize);
     if (moreRam == NULL) {
         printf("fatal: failed to allocate memory for additional RAM\n");
@@ -284,7 +285,7 @@ int main(int argc, char* argv[]) {
     memcpy(moreRam + PAGE_SIZE, &checkValue2, sizeof(checkValue2));
 
     // Map the memory to the guest at the desired base address
-    printf("Mapping additional RAM... ");
+    printf("Mapping additional RAM to 0x%llx... ", moreRamBase);
     memMapStatus = vm.MapGuestMemory(moreRamBase, moreRamSize, MemoryFlags::Read | MemoryFlags::Write | MemoryFlags::Execute, moreRam);
     switch (memMapStatus) {
     case MemoryMappingStatus::OK: printf("succeeded\n"); break;
