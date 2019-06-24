@@ -366,7 +366,7 @@ void printTable(VirtualProcessor& vp, Reg table) noexcept {
 	}
 }
 
-#define READREG(code, name) RegValue name; vp.RegRead(code, name);
+#define READREG(code, name) bool has_##name; RegValue name; has_##name = vp.RegRead(code, name) == VPOperationStatus::OK;
 void printSegAndTableRegs(VirtualProcessor& vp) noexcept {
 	READREG(Reg::CS, cs);
 	READREG(Reg::SS, ss);
@@ -409,14 +409,14 @@ void printControlAndDebugRegs(VirtualProcessor& vp) noexcept {
 		printf(" CR2 = %016" PRIx64 "   CR0 = %016" PRIx64, cr2.u64, cr0.u64); printCR0Bits(cr0.u64); printf("\n");
 		printf(" CR3 = %016" PRIx64 "   CR4 = %016" PRIx64, cr3.u64, cr4.u64); printCR4Bits(cr4.u64); printf("\n");
 		printf(" DR0 = %016" PRIx64 "   CR8 = ", dr0.u64);
-		if (extendedRegs.AnyOf(ExtendedControlRegister::CR8)) {
+		if (extendedRegs.AnyOf(ExtendedControlRegister::CR8) && has_cr8) {
 			printf("%016" PRIx64, cr8.u64); printCR8Bits(cr8.u64); printf("\n");
 		}
 		else {
 			printf("................\n");
 		}
 		printf(" DR1 = %016" PRIx64 "  XCR0 = ", dr1.u64);
-		if (extendedRegs.AnyOf(ExtendedControlRegister::XCR0)) {
+		if (extendedRegs.AnyOf(ExtendedControlRegister::XCR0) && has_xcr0) {
 			printf("%016" PRIx64, xcr0.u64); printXCR0Bits(xcr0.u64); printf("\n");
 		}
 		else {
@@ -430,7 +430,7 @@ void printControlAndDebugRegs(VirtualProcessor& vp) noexcept {
 		printf(" CR3 = %08" PRIx32 "   CR4 = %08" PRIx32, cr3.u32, cr4.u32); printCR4Bits(cr4.u32); printf("\n");
 		printf(" DR0 = %08" PRIx32 "\n", dr0.u32);
 		printf(" DR1 = %08" PRIx32 "  XCR0 = ", dr1.u32);
-		if (extendedRegs.AnyOf(ExtendedControlRegister::XCR0)) {
+		if (extendedRegs.AnyOf(ExtendedControlRegister::XCR0) && has_xcr0) {
 			printf("%016" PRIx64, xcr0.u64); printXCR0Bits(xcr0.u64); printf("\n");
 		}
 		else {
