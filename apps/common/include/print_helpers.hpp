@@ -33,6 +33,7 @@ enum class MMBits {
     _8, _16, _32, _64
 };
 
+void printFPExts(virt86::FloatingPointExtension fpExts) noexcept;
 void printRegs(virt86::VirtualProcessor& vp) noexcept;
 void printFPRegs(virt86::VirtualProcessor& vp) noexcept;
 void printMXCSRRegs(virt86::VirtualProcessor& vp) noexcept;

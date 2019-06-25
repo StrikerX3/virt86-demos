@@ -413,11 +413,18 @@ int main() {
 
     Platform& platform = PlatformFactories[platformIndex]();
 
-    // Print out the platform's features
-    printf("Features:\n");
+	// Print out the host's features
+	printf("Host features:\n");
+	printf("  Maximum guest physical address: 0x%" PRIx64 "\n", HostInfo.gpa.maxAddress);
+	printf("  Floating point extensions:");
+	printFPExts(HostInfo.floatingPointExtensions);
+	printf("\n\n");
+
+	// Print out the platform's features
+    printf("Hypervisor features:\n");
     auto& features = platform.GetFeatures();
     printf("  Maximum number of VCPUs: %u per VM, %u global\n", features.maxProcessorsPerVM, features.maxProcessorsGlobal);
-	printf("  Maximum guest physical address: 0x%llx\n", features.guestPhysicalAddress.maxAddress);
+	printf("  Maximum guest physical address: 0x%" PRIx64 "\n", features.guestPhysicalAddress.maxAddress);
 	printf("  Unrestricted guest: %s\n", (features.unrestrictedGuest) ? "supported" : "unsuported");
     printf("  Extended Page Tables: %s\n", (features.extendedPageTables) ? "supported" : "unsuported");
     printf("  Guest debugging: %s\n", (features.guestDebugging) ? "available" : "unavailable");
@@ -437,15 +444,7 @@ int main() {
         }
     }
     printf("  Floating point extensions:");
-    const auto fpExts = BitmaskEnum(features.floatingPointExtensions);
-    if (!fpExts) printf(" None");
-    else {
-        if (fpExts.AnyOf(FloatingPointExtension::SSE2)) printf(" SSE2");
-        if (fpExts.AnyOf(FloatingPointExtension::AVX)) printf(" AVX");
-        if (fpExts.AnyOf(FloatingPointExtension::VEX)) printf(" VEX");
-        if (fpExts.AnyOf(FloatingPointExtension::MVEX)) printf(" MVEX");
-        if (fpExts.AnyOf(FloatingPointExtension::EVEX)) printf(" EVEX");
-    }
+    printFPExts(features.floatingPointExtensions);
     printf("\n");
     printf("  Extended control registers:");
     const auto extCRs = BitmaskEnum(features.extendedControlRegisters);

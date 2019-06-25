@@ -34,6 +34,43 @@ SOFTWARE.
 
 using namespace virt86;
 
+void printFPExts(FloatingPointExtension fpExts) noexcept {
+	auto bmFpExts = BitmaskEnum(fpExts);
+	if (!bmFpExts) printf(" None");
+	else {
+		if (bmFpExts.AnyOf(FloatingPointExtension::MMX)) printf(" MMX");
+		if (bmFpExts.AnyOf(FloatingPointExtension::SSE)) printf(" SSE");
+		if (bmFpExts.AnyOf(FloatingPointExtension::SSE2)) printf(" SSE2");
+		if (bmFpExts.AnyOf(FloatingPointExtension::SSE3)) printf(" SSE3");
+		if (bmFpExts.AnyOf(FloatingPointExtension::SSSE3)) printf(" SSSE3");
+		if (bmFpExts.AnyOf(FloatingPointExtension::SSE4_1)) printf(" SSE4.1");
+		if (bmFpExts.AnyOf(FloatingPointExtension::SSE4_2)) printf(" SSE4.2");
+		if (bmFpExts.AnyOf(FloatingPointExtension::AVX)) printf(" AVX");
+		if (bmFpExts.AnyOf(FloatingPointExtension::FMA)) printf(" FMA");
+		if (bmFpExts.AnyOf(FloatingPointExtension::AVX2)) printf(" AVX2");
+		if (bmFpExts.AnyOf(FloatingPointExtension::AVX512F)) {
+			printf(" AVX-512[F");
+			if (bmFpExts.AnyOf(FloatingPointExtension::AVX512DQ)) printf(" DQ");
+			if (bmFpExts.AnyOf(FloatingPointExtension::AVX512IFMA)) printf(" IFMA");
+			if (bmFpExts.AnyOf(FloatingPointExtension::AVX512PF)) printf(" PF");
+			if (bmFpExts.AnyOf(FloatingPointExtension::AVX512ER)) printf(" ER");
+			if (bmFpExts.AnyOf(FloatingPointExtension::AVX512CD)) printf(" CD");
+			if (bmFpExts.AnyOf(FloatingPointExtension::AVX512BW)) printf(" BW");
+			if (bmFpExts.AnyOf(FloatingPointExtension::AVX512VL)) printf(" VL");
+			if (bmFpExts.AnyOf(FloatingPointExtension::AVX512VBMI)) printf(" VBMI");
+			if (bmFpExts.AnyOf(FloatingPointExtension::AVX512VBMI2)) printf(" VBMI2");
+			if (bmFpExts.AnyOf(FloatingPointExtension::AVX512GFNI)) printf(" GFNI");
+			if (bmFpExts.AnyOf(FloatingPointExtension::AVX512VAES)) printf(" VAES");
+			if (bmFpExts.AnyOf(FloatingPointExtension::AVX512VNNI)) printf(" VNNI");
+			if (bmFpExts.AnyOf(FloatingPointExtension::AVX512BITALG)) printf(" BITALG");
+			if (bmFpExts.AnyOf(FloatingPointExtension::AVX512VPOPCNTDQ)) printf(" VPOPCNTDQ");
+			if (bmFpExts.AnyOf(FloatingPointExtension::AVX512QVNNIW)) printf(" QVNNIW");
+			if (bmFpExts.AnyOf(FloatingPointExtension::AVX512QFMA)) printf(" QFMA");
+			printf("]");
+		}
+	}
+}
+
 #define PRINT_FLAG(flags, prefix, flag) \
 do { \
     if (flags & prefix##_##flag) printf(" " #flag); \
