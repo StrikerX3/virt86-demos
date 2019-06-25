@@ -29,8 +29,15 @@ SOFTWARE.
 
 #include <cstdint>
 
+enum class MMBits {
+    _8, _16, _32, _64
+};
+
 void printRegs(virt86::VirtualProcessor& vp) noexcept;
 void printFPRegs(virt86::VirtualProcessor& vp) noexcept;
-void printSSERegs(virt86::VirtualProcessor& vp) noexcept;
+void printMXCSRRegs(virt86::VirtualProcessor& vp) noexcept;
+void printXMMRegs(virt86::VirtualProcessor& vp, MMBits bits) noexcept;
+void printYMMRegs(virt86::VirtualProcessor& vp, MMBits bits) noexcept;
+void printZMMRegs(virt86::VirtualProcessor& vp, MMBits bits) noexcept;
 void printDirtyBitmap(virt86::VirtualMachine& vm, uint64_t baseAddress, uint64_t numPages) noexcept;
 void printAddressTranslation(virt86::VirtualProcessor& vp, const uint64_t addr) noexcept;

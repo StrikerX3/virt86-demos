@@ -399,7 +399,12 @@ int main(int argc, char* argv[]) {
     {
 		printf("Final VCPU state:\n");
 		printRegs(vp);
-		printf("\n");
+        //printFPRegs(vp);
+        printMXCSRRegs(vp);
+        printXMMRegs(vp, MMBits::_32);
+        printYMMRegs(vp, MMBits::_64);
+        printZMMRegs(vp, MMBits::_64);
+        printf("\n");
 
 		printf("Linear memory address translations:\n");
         printAddressTranslation(vp, 0x00000000);

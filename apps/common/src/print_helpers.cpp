@@ -562,7 +562,7 @@ void printFPRegs(VirtualProcessor& vp) noexcept {
     }
 }
 
-void printSSERegs(VirtualProcessor& vp) noexcept {
+void printMXCSRRegs(VirtualProcessor& vp) noexcept {
     MXCSR mxcsr, mxcsrMask;
     auto status = vp.GetMXCSR(mxcsr);
     if (status != VPOperationStatus::OK) {
@@ -581,76 +581,161 @@ void printSSERegs(VirtualProcessor& vp) noexcept {
     if (extCRs.AnyOf(ExtendedControlRegister::MXCSRMask)) {
         printf("MXCSR_MASK = %08x\n", mxcsrMask.u32);
     }
+}
 
-    auto caps = vp.GetVirtualMachine().GetPlatform().GetFeatures();
-    uint8_t numXMM = 0;
-    const auto fpExts = BitmaskEnum(caps.floatingPointExtensions);
-    if (fpExts.AnyOf(FloatingPointExtension::SSE2)) {
-        numXMM = 8;
-    }
-    if (fpExts.AnyOf(FloatingPointExtension::VEX)) {
-        numXMM = 16;
-    }
-    if (fpExts.AnyOf(FloatingPointExtension::EVEX)) {
-        numXMM = 32;
-    }
-    for (uint8_t i = 0; i < numXMM; i++) {
+void printXMMRegs(VirtualProcessor& vp, MMBits bits) noexcept {
+    auto cpuMode = getCPUMode(vp);
+    const uint8_t maxMMRegs = (cpuMode == CPUMode::IA32e) ? 32 : 8;
+
+    for (uint8_t i = 0; i < maxMMRegs; i++) {
         RegValue value;
-        status = vp.RegRead(RegAdd(Reg::XMM0, i), value);
+        auto status = vp.RegRead(RegAdd(Reg::XMM0, i), value);
         if (status != VPOperationStatus::OK) {
-            printf("Failed to read register XMM%u\n", i);
-            continue;
+            break;
         }
 
         const auto& v = value.xmm;
-        printf("XMM%-2u = %016" PRIx64 "  %016" PRIx64 "\n", i, v.i64[0], v.i64[1]);
-        printf("        %lf  %lf\n", v.f64[0], v.f64[1]);
+        printf("XMM%-2u =", i);
+        switch (bits) {
+        case MMBits::_8:
+            for (size_t j = 0; j < 16; j++) {
+                printf(" %02" PRIx8, v.i8[j]);
+            }
+            printf("\n");
+            break;
+        case MMBits::_16:
+            for (size_t j = 0; j < 8; j++) {
+                printf("  %04" PRIx16, v.i16[j]);
+            }
+            printf("\n");
+            break;
+        case MMBits::_32:
+            for (size_t j = 0; j < 4; j++) {
+                printf("  %08" PRIx32, v.i32[j]);
+            }
+            printf("\n");
+            printf("       ");
+            for (size_t j = 0; j < 4; j++) {
+                printf("  %f", v.f32[j]);
+            }
+            printf("\n");
+            break;
+        case MMBits::_64:
+            for (size_t j = 0; j < 2; j++) {
+                printf("  %016" PRIx64, v.i64[j]);
+            }
+            printf("\n");
+            printf("       ");
+            for (size_t j = 0; j < 4; j++) {
+                printf("  %lf", v.f64[j]);
+            }
+            printf("\n");
+            break;
+        }
     }
+}
 
-    uint8_t numYMM = 0;
-    if (fpExts.AnyOf(FloatingPointExtension::AVX)) {
-        numYMM = 8;
-    }
-    if (fpExts.AnyOf(FloatingPointExtension::VEX)) {
-        numYMM = 16;
-    }
-    if (fpExts.AnyOf(FloatingPointExtension::EVEX)) {
-        numYMM = 32;
-    }
-    for (uint8_t i = 0; i < numYMM; i++) {
+void printYMMRegs(VirtualProcessor& vp, MMBits bits) noexcept {
+    auto cpuMode = getCPUMode(vp);
+    const uint8_t maxMMRegs = (cpuMode == CPUMode::IA32e) ? 32 : 8;
+
+    for (uint8_t i = 0; i < maxMMRegs; i++) {
         RegValue value;
-        status = vp.RegRead(RegAdd(Reg::YMM0, i), value);
+        auto status = vp.RegRead(RegAdd(Reg::YMM0, i), value);
         if (status != VPOperationStatus::OK) {
-            printf("Failed to read register YMM%u\n", i);
-            continue;
+            break;
         }
 
         const auto& v = value.ymm;
-        printf("YMM%-2u = %016" PRIx64 "  %016" PRIx64 "  %016" PRIx64 "  %016" PRIx64 "\n", i, v.i64[0], v.i64[1], v.i64[2], v.i64[3]);
-        printf("        %lf  %lf  %lf  %lf\n", v.f64[0], v.f64[1], v.f64[2], v.f64[3]);
+        printf("YMM%-2u =", i);
+        switch (bits) {
+        case MMBits::_8:
+            for (size_t j = 0; j < 32; j++) {
+                printf(" %02" PRIx8, v.i8[j]);
+            }
+            printf("\n");
+            break;
+        case MMBits::_16:
+            for (size_t j = 0; j < 16; j++) {
+                printf("  %04" PRIx16, v.i16[j]);
+            }
+            printf("\n");
+            break;
+        case MMBits::_32:
+            for (size_t j = 0; j < 8; j++) {
+                printf("  %08" PRIx32, v.i32[j]);
+            }
+            printf("\n");
+            printf("       ");
+            for (size_t j = 0; j < 8; j++) {
+                printf("  %f", v.f32[j]);
+            }
+            printf("\n");
+            break;
+        case MMBits::_64:
+            for (size_t j = 0; j < 4; j++) {
+                printf("  %016" PRIx64, v.i64[j]);
+            }
+            printf("\n");
+            printf("       ");
+            for (size_t j = 0; j < 4; j++) {
+                printf("  %lf", v.f64[j]);
+            }
+            printf("\n");
+            break;
+        }
     }
+}
 
-    uint8_t numZMM = 0;
-    if (fpExts.AnyOf(FloatingPointExtension::AVX512)) {
-        numZMM = 8;
-    }
-    if (fpExts.AnyOf(FloatingPointExtension::VEX)) {
-        numZMM = 16;
-    }
-    if (fpExts.AnyOf((FloatingPointExtension::EVEX | FloatingPointExtension::MVEX))) {
-        numZMM = 32;
-    }
-    for (uint8_t i = 0; i < numZMM; i++) {
+void printZMMRegs(VirtualProcessor& vp, MMBits bits) noexcept {
+    auto cpuMode = getCPUMode(vp);
+    const uint8_t maxMMRegs = (cpuMode == CPUMode::IA32e) ? 32 : 8;
+
+    for (uint8_t i = 0; i < maxMMRegs; i++) {
         RegValue value;
-        status = vp.RegRead(RegAdd(Reg::ZMM0, i), value);
+        auto status = vp.RegRead(RegAdd(Reg::ZMM0, i), value);
         if (status != VPOperationStatus::OK) {
-            printf("Failed to read register ZMM%u\n", i);
-            continue;
+            break;
         }
 
         const auto& v = value.zmm;
-        printf("ZMM%-2u = %016" PRIx64 "  %016" PRIx64 "  %016" PRIx64 "  %016" PRIx64 "  %016" PRIx64 "  %016" PRIx64 "  %016" PRIx64 "  %016" PRIx64 "\n", i, v.i64[0], v.i64[1], v.i64[2], v.i64[3], v.i64[4], v.i64[5], v.i64[6], v.i64[7]);
-        printf("        %lf  %lf  %lf  %lf  %lf  %lf  %lf  %lf\n", v.f64[0], v.f64[1], v.f64[2], v.f64[3], v.f64[4], v.f64[5], v.f64[6], v.f64[7]);
+        printf("YMM%-2u =", i);
+        switch (bits) {
+        case MMBits::_8:
+            for (size_t j = 0; j < 64; j++) {
+                printf(" %02" PRIx8, v.i8[j]);
+            }
+            printf("\n");
+            break;
+        case MMBits::_16:
+            for (size_t j = 0; j < 32; j++) {
+                printf("  %04" PRIx16, v.i16[j]);
+            }
+            printf("\n");
+            break;
+        case MMBits::_32:
+            for (size_t j = 0; j < 16; j++) {
+                printf("  %08" PRIx32, v.i32[j]);
+            }
+            printf("\n");
+            printf("       ");
+            for (size_t j = 0; j < 16; j++) {
+                printf("  %f", v.f32[j]);
+            }
+            printf("\n");
+            break;
+        case MMBits::_64:
+            for (size_t j = 0; j < 8; j++) {
+                printf("  %016" PRIx64, v.i64[j]);
+            }
+            printf("\n");
+            printf("       ");
+            for (size_t j = 0; j < 8; j++) {
+                printf("  %lf", v.f64[j]);
+            }
+            printf("\n");
+            break;
+        }
     }
 }
 
