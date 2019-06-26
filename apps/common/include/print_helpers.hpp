@@ -35,7 +35,9 @@ enum class MMBits {
 
 void printFPExts(virt86::FloatingPointExtension fpExts) noexcept;
 void printRegs(virt86::VirtualProcessor& vp) noexcept;
-void printFPRegs(virt86::VirtualProcessor& vp) noexcept;
+void printFPUControlRegs(virt86::VirtualProcessor& vp) noexcept;
+void printSTRegs(virt86::VirtualProcessor& vp) noexcept;
+void printMMRegs(virt86::VirtualProcessor& vp, MMBits bits) noexcept;
 void printMXCSRRegs(virt86::VirtualProcessor& vp) noexcept;
 void printXMMRegs(virt86::VirtualProcessor& vp, MMBits bits) noexcept;
 void printYMMRegs(virt86::VirtualProcessor& vp, MMBits bits) noexcept;

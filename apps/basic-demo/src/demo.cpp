@@ -1731,7 +1731,8 @@ int main() {
 
     printf("\nFinal CPU register state:\n");
     printRegs(vp);
-    printFPRegs(vp);
+    printSTRegs(vp);
+    printMMRegs(vp);
     printMXCSRRegs(vp);
     printXMMRegs(vp, MMBits::_32);
     printYMMRegs(vp, MMBits::_64);

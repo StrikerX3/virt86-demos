@@ -233,6 +233,8 @@ int main(int argc, char* argv[]) {
         vp.RegWrite(Reg::ESP, esp);
     }
 
+    // ----- Start ----------------------------------------------------------------------------------------------------
+
     // Run until HLT is reached
     bool running = true;
     while (running) {
@@ -264,6 +266,8 @@ int main(int argc, char* argv[]) {
 
     printf("\n");
 
+    // ----- Page table manipulation ----------------------------------------------------------------------------------
+    
     // Map a page of memory to the guest and write some data to be read by the guest in order to check if the mapping worked
 
     // Values written to the newly allocated pages
@@ -395,26 +399,146 @@ int main(int argc, char* argv[]) {
 
     printf("\n");
 
-    // Debugging
+    // ----- MMX ------------------------------------------------------------------------------------------------------
+
+    // Run until HLT is reached
+    running = true;
+    while (running) {
+        auto execStatus = vp.Run();
+        if (execStatus != VPExecutionStatus::OK) {
+            printf("Virtual CPU execution failed\n");
+            break;
+        }
+
+        printRegs(vp);
+        printMMRegs(vp, MMBits::_16);
+        printf("\n");
+
+        auto& exitInfo = vp.GetVMExitInfo();
+        switch (exitInfo.reason) {
+        case VMExitReason::HLT:
+            printf("HLT reached\n");
+            {
+                RegValue rax;
+                vp.RegRead(Reg::RAX, rax);
+                if (rax.u64 == checkValue2) {
+                    printf("Got the right value\n");
+                }
+            }
+            running = false;
+            break;
+        case VMExitReason::Shutdown:
+            printf("VCPU shutting down\n");
+            running = false;
+            break;
+        case VMExitReason::Error:
+            printf("VCPU execution failed\n");
+            running = false;
+            break;
+        }
+    }
+   
+    // Check result
     {
-		printf("Final VCPU state:\n");
-		printRegs(vp);
-        //printFPRegs(vp);
-        printMXCSRRegs(vp);
+        RegValue rax, rsi, mm0;
+        vp.RegRead(Reg::RAX, rax);
+        vp.RegRead(Reg::RSI, rsi);   // contains address of result in memory
+        vp.RegRead(Reg::MM0, mm0);
+
+        uint64_t memValue;
+        vp.LMemRead(rsi.u64, sizeof(memValue), &memValue);
+        
+        if (rax.u64 == 0x002c00210016000b) printf("RAX contains the correct result\n");
+        if (memValue == 0x002c00210016000b) printf("Memory contains the correct result\n");
+        if (mm0.mm.i64[0] == 0x002c00210016000b) printf("MM0 contains the correct result\n");
+    }
+
+    printf("\n");
+
+    // ----- SSE ------------------------------------------------------------------------------------------------------
+
+    // Run until HLT is reached
+    running = true;
+    while (running) {
+        auto execStatus = vp.Run();
+        if (execStatus != VPExecutionStatus::OK) {
+            printf("Virtual CPU execution failed\n");
+            break;
+        }
+
+        printRegs(vp);
         printXMMRegs(vp, MMBits::_32);
-        printYMMRegs(vp, MMBits::_64);
-        printZMMRegs(vp, MMBits::_64);
         printf("\n");
 
-		printf("Linear memory address translations:\n");
-        printAddressTranslation(vp, 0x00000000);
-        printAddressTranslation(vp, 0x00010000);
-        printAddressTranslation(vp, 0xffff0000);
-        printAddressTranslation(vp, 0xffff00e8);
-        printAddressTranslation(vp, 0x100000000);
-        printf("\n");
+        auto& exitInfo = vp.GetVMExitInfo();
+        switch (exitInfo.reason) {
+        case VMExitReason::HLT:
+            printf("HLT reached\n");
+            {
+                RegValue rax;
+                vp.RegRead(Reg::RAX, rax);
+                if (rax.u64 == checkValue2) {
+                    printf("Got the right value\n");
+                }
+            }
+            running = false;
+            break;
+        case VMExitReason::Shutdown:
+            printf("VCPU shutting down\n");
+            running = false;
+            break;
+        case VMExitReason::Error:
+            printf("VCPU execution failed\n");
+            running = false;
+            break;
+        }
+    }
 
-		uint64_t stackVal;
+    // Check result
+    {
+        RegValue rax, rsi, xmm0;
+        vp.RegRead(Reg::RAX, rax);
+        vp.RegRead(Reg::RSI, rsi);   // contains address of result in memory
+        vp.RegRead(Reg::XMM0, xmm0);
+
+        float memValue[4];
+        vp.LMemRead(rsi.u64, sizeof(memValue), &memValue);
+
+        static constexpr float epsilon = 1e-5f;
+        auto feq = [](float x, float y) -> bool { return fabs(x - y) <= epsilon; };
+
+        // Reinterpret RAX as if it were the lowest 64 bits of XMM0
+        if (feq(rax.xmm.f32[0], 30.8) && feq(rax.xmm.f32[1], 51.48)) printf("RAX contains the correct result\n");
+        if (feq(memValue[0], 30.8) && feq(memValue[1], 51.48) && feq(memValue[2], 77.0) && feq(memValue[3], 107.36)) printf("Memory contains the correct result\n");
+        if (feq(xmm0.xmm.f32[0], 30.8) && feq(xmm0.xmm.f32[1], 51.48) && feq(xmm0.xmm.f32[2], 77.0) && feq(xmm0.xmm.f32[3], 107.36)) printf("XMM0 contains the correct result\n");
+    }
+
+    printf("\n");
+
+    // TODO: continue implementing tests
+
+    // ----- End ------------------------------------------------------------------------------------------------------
+
+	printf("Final VCPU state:\n");
+	printRegs(vp);
+    printSTRegs(vp);
+    printMMRegs(vp, MMBits::_16);
+    printMXCSRRegs(vp);
+    printXMMRegs(vp, MMBits::_32);
+    printYMMRegs(vp, MMBits::_64);
+    printZMMRegs(vp, MMBits::_64);
+    printf("\n");
+
+	printf("Linear memory address translations:\n");
+    printAddressTranslation(vp, 0x00000000);
+    printAddressTranslation(vp, 0x00010000);
+    printAddressTranslation(vp, 0xffff0000);
+    printAddressTranslation(vp, 0xffff00e8);
+    printAddressTranslation(vp, 0x100000000);
+    printf("\n");
+
+    {
+        uint64_t stackVal;
 		if (vp.LMemRead(0x200000 - 8, sizeof(uint64_t), &stackVal)) {
 			printf("Value written to stack: 0x%016" PRIx64 "\n", stackVal);
 		}

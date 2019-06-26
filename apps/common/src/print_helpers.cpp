@@ -45,8 +45,12 @@ void printFPExts(FloatingPointExtension fpExts) noexcept {
 		if (bmFpExts.AnyOf(FloatingPointExtension::SSSE3)) printf(" SSSE3");
 		if (bmFpExts.AnyOf(FloatingPointExtension::SSE4_1)) printf(" SSE4.1");
 		if (bmFpExts.AnyOf(FloatingPointExtension::SSE4_2)) printf(" SSE4.2");
-		if (bmFpExts.AnyOf(FloatingPointExtension::AVX)) printf(" AVX");
-		if (bmFpExts.AnyOf(FloatingPointExtension::FMA)) printf(" FMA");
+        if (bmFpExts.AnyOf(FloatingPointExtension::SSE4a)) printf(" SSE4a");
+        if (bmFpExts.AnyOf(FloatingPointExtension::XOP)) printf(" XOP");
+        if (bmFpExts.AnyOf(FloatingPointExtension::F16C)) printf(" F16C");
+        if (bmFpExts.AnyOf(FloatingPointExtension::FMA4)) printf(" FMA4");
+        if (bmFpExts.AnyOf(FloatingPointExtension::AVX)) printf(" AVX");
+        if (bmFpExts.AnyOf(FloatingPointExtension::FMA3)) printf(" FMA3");
 		if (bmFpExts.AnyOf(FloatingPointExtension::AVX2)) printf(" AVX2");
 		if (bmFpExts.AnyOf(FloatingPointExtension::AVX512F)) {
 			printf(" AVX-512[F");
@@ -566,7 +570,7 @@ void printRegs(VirtualProcessor& vp) noexcept {
     }
 }
 
-void printFPRegs(VirtualProcessor& vp) noexcept {
+void printFPUControlRegs(VirtualProcessor& vp) noexcept {
     FPUControl fpuCtl;
     auto status = vp.GetFPUControl(fpuCtl);
     if (status != VPOperationStatus::OK) {
@@ -574,28 +578,63 @@ void printFPRegs(VirtualProcessor& vp) noexcept {
         return;
     }
 
-    Reg regs[] = {
-        Reg::ST0, Reg::ST1, Reg::ST2, Reg::ST3, Reg::ST4, Reg::ST5, Reg::ST6, Reg::ST7,
-        Reg::MM0, Reg::MM1, Reg::MM2, Reg::MM3, Reg::MM4, Reg::MM5, Reg::MM6, Reg::MM7,
-    };
-    RegValue values[array_size(regs)];
-    
-    status = vp.RegRead(regs, values, array_size(regs));
-    if (status != VPOperationStatus::OK) {
-        printf("Failed to retrieve FPU and MMX registers\n");
-        return;
-    }
-    
     printf("FPU.CW = %04x   FPU.SW = %04x   FPU.TW = %04x   FPU.OP = %04x\n", fpuCtl.cw, fpuCtl.sw, fpuCtl.tw, fpuCtl.op);
     printf("FPU.CS:IP = %04x:%08x\n", fpuCtl.cs, fpuCtl.ip);
     printf("FPU.DS:DP = %04x:%08x\n", fpuCtl.ds, fpuCtl.dp);
+}
+
+void printSTRegs(VirtualProcessor& vp) noexcept {
+    Reg regs[] = {
+        Reg::ST0, Reg::ST1, Reg::ST2, Reg::ST3, Reg::ST4, Reg::ST5, Reg::ST6, Reg::ST7,
+    };
+    RegValue values[array_size(regs)];
+
+    auto status = vp.RegRead(regs, values, array_size(regs));
+    if (status != VPOperationStatus::OK) {
+        printf("Failed to retrieve FPU registers\n");
+        return;
+    }
+
     for (int i = 0; i < 8; i++) {
         printf("ST(%d) = %016" PRIx64 " %04x\n", i, values[i].st.significand, values[i].st.exponentSign);
     }
+}
+
+void printMMRegs(VirtualProcessor& vp, MMBits bits) noexcept {
+    Reg regs[] = {
+        Reg::MM0, Reg::MM1, Reg::MM2, Reg::MM3, Reg::MM4, Reg::MM5, Reg::MM6, Reg::MM7,
+    };
+    RegValue values[array_size(regs)];
+
+    auto status = vp.RegRead(regs, values, array_size(regs));
+    if (status != VPOperationStatus::OK) {
+        printf("Failed to retrieve MMX registers\n");
+        return;
+    }
     
-    const RegValue *mmValues = &values[8];
     for (int i = 0; i < 8; i++) {
-        printf("MM%d = %016" PRIx64 "\n", i, mmValues[i].mm.i64[0]);
+        printf(" MM%d =", i);
+        switch (bits) {
+        case MMBits::_8:
+            for (int j = 7; j >= 0; j--) {
+                printf(" %02" PRIx8, values[i].mm.i8[j]);
+            }
+            break;
+        case MMBits::_16:
+            for (int j = 3; j >= 0; j--) {
+                printf(" %04" PRIx16, values[i].mm.i16[j]);
+            }
+            break;
+        case MMBits::_32:
+            for (int j = 1; j >= 0; j--) {
+                printf(" %08" PRIx32, values[i].mm.i32[j]);
+            }
+            break;
+        case MMBits::_64:
+            printf(" %016" PRIx64, values[i].mm.i64[0]);
+            break;
+        }
+        printf("\n");
     }
 }
 
@@ -635,35 +674,35 @@ void printXMMRegs(VirtualProcessor& vp, MMBits bits) noexcept {
         printf("XMM%-2u =", i);
         switch (bits) {
         case MMBits::_8:
-            for (size_t j = 0; j < 16; j++) {
+            for (int j = 15; j >= 0; j--) {
                 printf(" %02" PRIx8, v.i8[j]);
             }
             printf("\n");
             break;
         case MMBits::_16:
-            for (size_t j = 0; j < 8; j++) {
+            for (int j = 7; j >= 0; j--) {
                 printf("  %04" PRIx16, v.i16[j]);
             }
             printf("\n");
             break;
         case MMBits::_32:
-            for (size_t j = 0; j < 4; j++) {
+            for (int j = 3; j >= 0; j--) {
                 printf("  %08" PRIx32, v.i32[j]);
             }
             printf("\n");
             printf("       ");
-            for (size_t j = 0; j < 4; j++) {
+            for (int j = 3; j >= 0; j--) {
                 printf("  %f", v.f32[j]);
             }
             printf("\n");
             break;
         case MMBits::_64:
-            for (size_t j = 0; j < 2; j++) {
+            for (int j = 1; j >= 0; j--) {
                 printf("  %016" PRIx64, v.i64[j]);
             }
             printf("\n");
             printf("       ");
-            for (size_t j = 0; j < 4; j++) {
+            for (int j = 1; j >= 0; j--) {
                 printf("  %lf", v.f64[j]);
             }
             printf("\n");
@@ -687,35 +726,35 @@ void printYMMRegs(VirtualProcessor& vp, MMBits bits) noexcept {
         printf("YMM%-2u =", i);
         switch (bits) {
         case MMBits::_8:
-            for (size_t j = 0; j < 32; j++) {
+            for (int j = 31; j >= 0; j--) {
                 printf(" %02" PRIx8, v.i8[j]);
             }
             printf("\n");
             break;
         case MMBits::_16:
-            for (size_t j = 0; j < 16; j++) {
+            for (int j = 15; j >= 0; j--) {
                 printf("  %04" PRIx16, v.i16[j]);
             }
             printf("\n");
             break;
         case MMBits::_32:
-            for (size_t j = 0; j < 8; j++) {
+            for (int j = 7; j >= 0; j--) {
                 printf("  %08" PRIx32, v.i32[j]);
             }
             printf("\n");
             printf("       ");
-            for (size_t j = 0; j < 8; j++) {
+            for (int j = 7; j >= 0; j--) {
                 printf("  %f", v.f32[j]);
             }
             printf("\n");
             break;
         case MMBits::_64:
-            for (size_t j = 0; j < 4; j++) {
+            for (int j = 3; j >= 0; j--) {
                 printf("  %016" PRIx64, v.i64[j]);
             }
             printf("\n");
             printf("       ");
-            for (size_t j = 0; j < 4; j++) {
+            for (int j = 3; j >= 0; j--) {
                 printf("  %lf", v.f64[j]);
             }
             printf("\n");
@@ -739,35 +778,35 @@ void printZMMRegs(VirtualProcessor& vp, MMBits bits) noexcept {
         printf("YMM%-2u =", i);
         switch (bits) {
         case MMBits::_8:
-            for (size_t j = 0; j < 64; j++) {
+            for (int j = 63; j >= 0; j--) {
                 printf(" %02" PRIx8, v.i8[j]);
             }
             printf("\n");
             break;
         case MMBits::_16:
-            for (size_t j = 0; j < 32; j++) {
+            for (int j = 31; j >= 0; j--) {
                 printf("  %04" PRIx16, v.i16[j]);
             }
             printf("\n");
             break;
         case MMBits::_32:
-            for (size_t j = 0; j < 16; j++) {
+            for (int j = 15; j >= 0; j--) {
                 printf("  %08" PRIx32, v.i32[j]);
             }
             printf("\n");
             printf("       ");
-            for (size_t j = 0; j < 16; j++) {
+            for (int j = 15; j >= 0; j--) {
                 printf("  %f", v.f32[j]);
             }
             printf("\n");
             break;
         case MMBits::_64:
-            for (size_t j = 0; j < 8; j++) {
+            for (int j = 7; j >= 0; j--) {
                 printf("  %016" PRIx64, v.i64[j]);
             }
             printf("\n");
             printf("       ");
-            for (size_t j = 0; j < 8; j++) {
+            for (int j = 7; j >= 0; j--) {
                 printf("  %lf", v.f64[j]);
             }
             printf("\n");
