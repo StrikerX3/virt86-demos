@@ -5,6 +5,18 @@
 [BITS 64]
 org 0x10000
 
+; Define bits for floating point extension tests
+%define FPTEST_MMX    (1 << 0)
+%define FPTEST_SSE    (1 << 1)
+%define FPTEST_SSE2   (1 << 2)
+%define FPTEST_SSE3   (1 << 3)
+%define FPTEST_SSSE3  (1 << 4)
+%define FPTEST_SSE4   (1 << 5)
+%define FPTEST_XSAVE  (1 << 6)
+%define FPTEST_AVX    (1 << 7)
+%define FPTEST_FMA3   (1 << 8)
+%define FPTEST_AVX2   (1 << 9)
+
 Entry:
     ; Do a simple read
 	mov rax, [0x10000]
@@ -22,22 +34,64 @@ Host.PageManipulation1:
 Host.PageManipulation2:
     hlt                     ; Let the host manipulate the page tables again
     mov rax, [rsi]          ; Test modification by the host
+    hlt                     ; Stop here
 
-; TODO: check for support before each test
-; - check relevant CPUID bits
-; - notify host through a register
+FPTests.Init:
+    xor r15, r15            ; R15 will contain bits indicating which features the guest supports and will test
 
-SSE.Enable:
+    mov eax, 1              ; Read CPUID page 1
+    cpuid
+
+    test edx, (1 << 23)     ; MMX bit
+    jz FPTests.Init.End
+    or r15, FPTEST_MMX
+
+    test edx, (1 << 25)     ; SSE bit
+    jz FPTests.Init.End
+    or r15, FPTEST_SSE
+
+    test edx, (1 << 26)     ; SSE2 bit
+    jz FPTests.Init.End
+    or r15, FPTEST_SSE2
+
+    test ecx, (1 << 0)      ; SSE3 bit
+    jz FPTests.Init.End
+    or r15, FPTEST_SSE3
+
+    test ecx, (1 << 9)      ; SSSE3 bit
+    jz FPTests.Init.End
+    or r15, FPTEST_SSSE3
+
+    test ecx, (0b11 << 19)  ; SSE4_1 and SSE4_2 bits
+    jz FPTests.Init.End
+    or r15, FPTEST_SSE4
+
+    test ecx, (1 << 26)     ; XSAVE bit
+    jz FPTests.Init.End
+    or r15, FPTEST_XSAVE
+
+    test ecx, (1 << 28)     ; AVX bit
+    jz FPTests.Init.End
+    or r15, FPTEST_AVX
+
+    test ecx, (1 << 12)     ; FMA3 bit
+    jz FPTests.Init.End
+    or r15, FPTEST_FMA3
+
+    mov eax, 7              ; Read CPUID page 7
+    cpuid
+
+    test ebx, (1 << 5)      ; AVX2 bit
+    jz FPTests.Init.End
+    or r15, FPTEST_AVX2
+
+FPTests.Init.End:
     hlt
-    mov rax, cr0
-    and ax, 0xFFFB          ; Clear coprocessor emulation CR0.EM
-    or ax, 0x2              ; Set coprocessor monitoring  CR0.MP
-    mov cr0, rax
-    mov rax, cr4
-    or eax, (0b11 << 9)     ; Set CR4.OSFXSR and CR4.OSXMMEXCPT at the same time
-    mov cr4, rax
 
-MMX.Test:    
+MMX.Test:
+    test r15, FPTEST_MMX    ; Check if MMX test is enabled
+    jz FPTests.End          ; Leave tests if disabled
+
     emms                    ; Clear MMX state
 
     movq mm0, [mmx.v1]      ; Load first vector
@@ -54,6 +108,18 @@ MMX.Test:
     hlt                     ; Let the host check the results
     emms                    ; Be a good citizen and clear MMX state after we're done
 
+SSE.Enable:
+    test r15, FPTEST_SSE    ; Check if SSE test is enabled
+    jz FPTests.End          ; Leave tests if disabled
+
+    mov rax, cr0
+    and ax, 0xFFFB          ; Clear coprocessor emulation CR0.EM
+    or ax, 0x2              ; Set coprocessor monitoring  CR0.MP
+    mov cr0, rax
+    mov rax, cr4
+    or eax, (0b11 << 9)     ; Set CR4.OSFXSR and CR4.OSXMMEXCPT at the same time
+    mov cr4, rax
+
 SSE.Test:
     movups xmm0, [sse.v1]   ; Load first vector
     movups xmm1, [sse.v2]   ; Load second vector
@@ -69,6 +135,9 @@ SSE.Test:
     hlt                     ; Let the host check the result
 
 SSE2.Test:
+    test r15, FPTEST_SSE2   ; Check if SSE2 test is enabled
+    jz FPTests.End          ; Leave tests if disabled
+
     movupd xmm0, [sse2.v1]  ; Load first vector
     movupd xmm1, [sse2.v2]  ; Load second vector
 
@@ -83,6 +152,9 @@ SSE2.Test:
     hlt                     ; Let the host check the result
 
 SSE3.Test:
+    test r15, FPTEST_SSE3   ; Check if SSE3 test is enabled
+    jz FPTests.End          ; Leave tests if disabled
+
     movupd xmm0, [sse3.v1]  ; Load first vector
     movupd xmm1, [sse3.v2]  ; Load second vector
     
@@ -95,6 +167,9 @@ SSE3.Test:
     hlt                     ; Let the host check the result
 
 SSSE3.Test:
+    test r15, FPTEST_SSSE3  ; Check if SSSE3 test is enabled
+    jz FPTests.End          ; Leave tests if disabled
+
     movupd xmm0, [ssse3.v]  ; Load vector into xmm0
     movupd xmm1, [ssse3.v]  ; Load vector into xmm1
     
@@ -108,6 +183,9 @@ SSSE3.Test:
     hlt                     ; Let the host check the result
 
 SSE4.Test:   ; Includes SSE4.1 and SSE4.2
+    test r15, FPTEST_SSE4   ; Check if SSE4 test is enabled
+    jz FPTests.End          ; Leave tests if disabled
+
     movupd xmm0, [sse4.v1]  ; Load first vector into xmm0
     movupd xmm1, [sse4.v2]  ; Load second vector into xmm1
     movupd xmm2, [sse4.v2]  ; Load third vector into xmm2
@@ -124,6 +202,9 @@ SSE4.Test:   ; Includes SSE4.1 and SSE4.2
     hlt                     ; Let the host check the result
 
 AVX.Enable:
+    test r15, FPTEST_XSAVE  ; Check if XSAVE test is enabled
+    jz FPTests.End          ; Leave tests if disabled
+
     mov rax, cr4
     or eax, (1 << 18)       ; Set CR4.OSXSAVE
     mov cr4, rax
@@ -132,7 +213,19 @@ AVX.Enable:
     or eax, 7               ; Set AVX, SSE, X87 bits
     xsetbv                  ; Save back to XCR0
 
+XSAVE.Test:
+    mov rdx, 0xFFFFFFFFFFFFFFFF  ; Enable all XSAVE features
+    mov rax, 0xFFFFFFFFFFFFFFFF  ; ... on RDX and RAX
+    xsave [xsavearea]       ; XSAVE to reserved memory area
+
+    lea rsi, [xsavearea]    ; Put address of XSAVE area into RSI
+
+    hlt                     ; Let the host check the result
+
 AVX.Test:
+    test r15, FPTEST_AVX    ; Check if AVX test is enabled
+    jz FPTests.End          ; Leave tests if disabled
+
     vzeroall                ; Clear YMM registers
     vmovups ymm0, [avx.v1]  ; Load v1 into ymm0
     vmovups ymm1, [avx.v2]  ; Load v2 into ymm1
@@ -148,6 +241,9 @@ AVX.Test:
     hlt                     ; Let the host check the result
 
 FMA3.Test:
+    test r15, FPTEST_FMA3   ; Check if FMA3 test is enabled
+    jz FPTests.End          ; Leave tests if disabled
+
     vmovups ymm0, [fma3.v1] ; Load v1 into ymm0
     vmovups ymm1, [fma3.v2] ; Load v2 into ymm1
     vmovups ymm2, [fma3.v3] ; Load v3 into ymm2
@@ -161,6 +257,9 @@ FMA3.Test:
     hlt                     ; Let the host check the result
 
 AVX2.Test:
+    test r15, FPTEST_AVX2   ; Check if AVX2 test is enabled
+    jz FPTests.End          ; Leave tests if disabled
+
     vmovups ymm14, [avx2.v] ; Load v into ymm14
 
     vpermq ymm15, ymm14, 0x1B ; Permutates qwords from ymm6 to reverse order, store result in ymm15
@@ -171,16 +270,18 @@ AVX2.Test:
 
     hlt                     ; Let the host check the result
 
-XSAVE.Test:
-    mov rdx, 0xFFFFFFFFFFFFFFFF
-    mov rax, 0xFFFFFFFFFFFFFFFF
-    xsave [xsavearea]
+XSAVE_AVX.Test:
+    mov rdx, 0xFFFFFFFFFFFFFFFF  ; Enable all XSAVE features
+    mov rax, 0xFFFFFFFFFFFFFFFF  ; ... on RDX and RAX
+    xsave [xsavearea]       ; XSAVE to reserved memory area
 
     lea rsi, [xsavearea]    ; Put address of XSAVE area into RSI
 
     hlt                     ; Let the host check the result
 
+FPTests.End:
     ; We're done
+
 Die:
     cli
     hlt

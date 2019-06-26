@@ -88,6 +88,8 @@ void printFPExts(FloatingPointExtension fpExts) noexcept {
             if (bmFpExts.AnyOf(FloatingPointExtension::AVX512QFMA)) printf(" QFMA");
             printf("]");
         }
+        if (bmFpExts.AnyOf(FloatingPointExtension::FXSAVE)) printf(" FXSAVE");
+        if (bmFpExts.AnyOf(FloatingPointExtension::XSAVE)) printf(" XSAVE");
     }
 }
 
