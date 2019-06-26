@@ -95,10 +95,11 @@ SSE3.Test:
     hlt                     ; Let the host check the result
 
 SSSE3.Test:
-    movupd xmm0, [ssse3.v]  ; Load vector
+    movupd xmm0, [ssse3.v]  ; Load vector into xmm0
+    movupd xmm1, [ssse3.v]  ; Load vector into xmm1
     
-    pabsd xmm0, xmm0        ; Compute absolute values
-    phaddd xmm1, xmm0       ; Horizontally add each pair of consecutive 32-bit integers from xmm0, pack results into xmm1
+    pabsd xmm0, xmm0        ; Compute absolute values for xmm0
+    phaddd xmm1, xmm0       ; Horizontally add each pair of consecutive 32-bit integers from xmm0 and xmm1, pack results into xmm1
     
     movupd [ssse3.r], xmm1  ; Write result to memory
     movq rax, xmm1          ; Copy low 64 bits of result to RAX

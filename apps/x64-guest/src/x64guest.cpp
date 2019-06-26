@@ -525,9 +525,9 @@ int main(int argc, char* argv[]) {
         auto feq = [](double x, double y) -> bool { return fabs(x - y) <= epsilon; };
 
         // Reinterpret RAX as if it were the lowest 64 bits of XMM0
-        if (feq(rax.xmm.f64[0], 30.8)) printf("RAX contains the correct result\n");
-        if (feq(memValue[0], 30.8) && feq(memValue[1], 51.48)) printf("Memory contains the correct result\n");
-        if (feq(xmm0.xmm.f64[0], 30.8) && feq(xmm0.xmm.f64[1], 51.48)) printf("XMM0 contains the correct result\n");
+        if (feq(rax.xmm.f64[0], 11.22)) printf("RAX contains the correct result\n");
+        if (feq(memValue[0], 11.22) && feq(memValue[1], 24.64)) printf("Memory contains the correct result\n");
+        if (feq(xmm0.xmm.f64[0], 11.22) && feq(xmm0.xmm.f64[1], 24.64)) printf("XMM0 contains the correct result\n");
         printf("SSE2 test complete\n");
     }
 
@@ -579,9 +579,9 @@ int main(int argc, char* argv[]) {
         auto feq = [](double x, double y) -> bool { return fabs(x - y) <= epsilon; };
 
         // Reinterpret RAX as if it were the lowest 64 bits of XMM0
-        if (feq(rax.xmm.f64[0], 3.3)) printf("RAX contains the correct result\n");
-        if (feq(memValue[0], 3.3) && feq(memValue[1], 7.7)) printf("Memory contains the correct result\n");
-        if (feq(xmm0.xmm.f64[0], 3.3) && feq(xmm0.xmm.f64[1], 7.7)) printf("XMM0 contains the correct result\n");
+        if (feq(rax.xmm.f64[0], 4.0)) printf("RAX contains the correct result\n");
+        if (feq(memValue[0], 4.0) && feq(memValue[1], 2.0)) printf("Memory contains the correct result\n");
+        if (feq(xmm0.xmm.f64[0], 4.0) && feq(xmm0.xmm.f64[1], 2.0)) printf("XMM0 contains the correct result\n");
         printf("SSE3 test complete\n");
     }
 
@@ -621,18 +621,18 @@ int main(int argc, char* argv[]) {
 
     // Check result
     {
-        RegValue rax, rsi, xmm0;
+        RegValue rax, rsi, xmm1;
         vp.RegRead(Reg::RAX, rax);
         vp.RegRead(Reg::RSI, rsi);   // contains address of result in memory
-        vp.RegRead(Reg::XMM0, xmm0);
+        vp.RegRead(Reg::XMM1, xmm1);
 
         int memValue[4];
         vp.LMemRead(rsi.u64, sizeof(memValue), &memValue);
 
         // Reinterpret RAX as if it were the lowest 64 bits of XMM0
-        if (rax.xmm.i32[0] == 5555 && rax.xmm.i32[1] == 5555) printf("RAX contains the correct result\n");
-        if (memValue[0] == 5555 && memValue[1] == 5555 && memValue[2] == 5555 && memValue[3] == 5555) printf("Memory contains the correct result\n");
-        if (xmm0.xmm.i32[0] == 5555 && xmm0.xmm.i32[1] == 5555 && xmm0.xmm.i32[2] == 5555 && xmm0.xmm.i32[3] == 5555) printf("XMM0 contains the correct result\n");
+        if (rax.xmm.i32[0] == -3087 && rax.xmm.i32[1] == 3087) printf("RAX contains the correct result\n");
+        if (memValue[0] == -3087 && memValue[1] == 3087 && memValue[2] == 5555 && memValue[3] == 5555) printf("Memory contains the correct result\n");
+        if (xmm1.xmm.i32[0] == -3087 && xmm1.xmm.i32[1] == 3087 && xmm1.xmm.i32[2] == 5555 && xmm1.xmm.i32[3] == 5555) printf("XMM1 contains the correct result\n");
         printf("SSSE3 test complete\n");
     }
 
