@@ -105,7 +105,7 @@ SSSE3.Test:
     movq rax, xmm1          ; Copy low 64 bits of result to RAX
     lea rsi, [ssse3.r]      ; Put address of result into RSI
     
-    hlt
+    hlt                     ; Let the host check the result
 
 SSE4.Test:   ; Includes SSE4.1 and SSE4.2
     movupd xmm0, [sse4.v1]  ; Load first vector into xmm0
@@ -154,14 +154,30 @@ FMA3.Test:
 
     vfmadd132pd ymm0, ymm1, ymm2  ; ymm0 = ymm0 * ymm2 + ymm1
 
-    vmovups [avx.r], ymm0   ; Write result to memory
+    vmovups [fma3.r], ymm0  ; Write result to memory
     vmovq rax, xmm0         ; Copy low 64 bits of result to RAX
-    lea rsi, [avx.r]        ; Put address of result into RSI
+    lea rsi, [fma3.r]       ; Put address of result into RSI
 
     hlt                     ; Let the host check the result
 
 AVX2.Test:
-    ; TODO: write test
+    vmovups ymm14, [avx2.v] ; Load v into ymm14
+
+    vpermq ymm15, ymm14, 0x1B ; Permutates qwords from ymm6 to reverse order, store result in ymm15
+
+    vmovups [avx2.r], ymm15 ; Write result to memory
+    vmovq rax, xmm15        ; Copy low 64 bits of result to RAX
+    lea rsi, [avx2.r]       ; Put address of result into RSI
+
+    hlt                     ; Let the host check the result
+
+XSAVE.Test:
+    mov rdx, 0xFFFFFFFFFFFFFFFF
+    mov rax, 0xFFFFFFFFFFFFFFFF
+    xsave [xsavearea]
+
+    lea rsi, [xsavearea]    ; Put address of XSAVE area into RSI
+
     hlt                     ; Let the host check the result
 
     ; We're done
@@ -170,50 +186,62 @@ Die:
     hlt
     jmp Die
     
-ALIGN 16
     ; Data for MMX test
+ALIGN 16
     mmx.v1: dw 5, 10, 15, 20
     mmx.v2: dw 2, 2, 2, 2
     mmx.v3: dw 1, 2, 3, 4
     mmx.r:  resw 4
 
     ; Data for SSE test
+ALIGN 16
     sse.v1: dd 1.1, 2.2, 3.3, 4.4
     sse.v2: dd 5.5, 6.6, 7.7, 8.8
     sse.r:  resd 4
 
     ; Data for SSE2 test
+ALIGN 16
     sse2.v1: dq 1.1, 2.2
     sse2.v2: dq 3.3, 4.4
     sse2.r:  resq 2
 
     ; Data for SSE3 test
+ALIGN 16
     sse3.v1: dq 1.5, 2.5
     sse3.v2: dq 2.5, -0.5
     sse3.r:  resq 2
 
     ; Data for SSSE3 test
+ALIGN 16
     ssse3.v: dd 1234, -4321, -1234, 4321
     ssse3.r: resd 4
 
     ; Data for SSE4 test
+ALIGN 16
     sse4.v1: dd 0, -30, 0, 60
     sse4.v2: dd 0,  -6, 0,  2
     sse4.v3: dq 120, 120
     sse4.r:  resd 4
 
     ; Data for AVX test
+ALIGN 16
     avx.v1: dd 1.5, 2.5, 3.5, 4.5, 5.5, 6.5, 7.5, 8.5
     avx.v2: dd 8.5, 7.5, 6.5, 5.5, 4.5, 3.5, 2.5, 1.5
     avx.v3: dd 1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0, 4.5
     avx.r:  resd 8
 
     ; Data for FMA3 test
+ALIGN 16
     fma3.v1: dq 0.5, 1.0, 1.5, 2.0
     fma3.v2: dq 2.0, 2.5, 3.0, 3.5
     fma3.v3: dq 4.0, 3.0, 2.0, 1.0
     fma3.r:  resq 4
 
     ; Data for AVX2 test
-    ; TODO
+ALIGN 16
+    avx2.v: dq 1, 2, 3, 4
+    avx2.r: resq 4
 
+    ; XSAVE state area
+ALIGN 64
+    xsavearea: resb 1024
