@@ -616,7 +616,7 @@ void printSTRegs(VirtualProcessor& vp) noexcept {
     }
 }
 
-void printMMRegs(VirtualProcessor& vp, MMBits bits) noexcept {
+void printMMRegs(VirtualProcessor& vp, MMFormat format) noexcept {
     Reg regs[] = {
         Reg::MM0, Reg::MM1, Reg::MM2, Reg::MM3, Reg::MM4, Reg::MM5, Reg::MM6, Reg::MM7,
     };
@@ -630,23 +630,23 @@ void printMMRegs(VirtualProcessor& vp, MMBits bits) noexcept {
     
     for (int i = 0; i < 8; i++) {
         printf(" MM%d =", i);
-        switch (bits) {
-        case MMBits::_8:
+        switch (format) {
+        case MMFormat::I8:
             for (int j = 7; j >= 0; j--) {
                 printf(" %02" PRIx8, values[i].mm.i8[j]);
             }
             break;
-        case MMBits::_16:
+        case MMFormat::I16:
             for (int j = 3; j >= 0; j--) {
                 printf(" %04" PRIx16, values[i].mm.i16[j]);
             }
             break;
-        case MMBits::_32:
+        case MMFormat::I32:
             for (int j = 1; j >= 0; j--) {
                 printf(" %08" PRIx32, values[i].mm.i32[j]);
             }
             break;
-        case MMBits::_64:
+        case MMFormat::I64:
             printf(" %016" PRIx64, values[i].mm.i64[0]);
             break;
         }
@@ -675,7 +675,56 @@ void printMXCSRRegs(VirtualProcessor& vp) noexcept {
     }
 }
 
-void printXMMRegs(VirtualProcessor& vp, MMBits bits) noexcept {
+template<size_t N, typename T>
+static void printXMMVals(T& values, XMMFormat format) {
+    switch (format) {
+    case XMMFormat::I8:
+        for (int j = N - 1; j >= 0; j--) {
+            printf(" %02" PRIx8, values.i8[j]);
+        }
+        printf("\n");
+        break;
+    case XMMFormat::I16:
+        for (int j = N/2 - 1; j >= 0; j--) {
+            printf("  %04" PRIx16, values.i16[j]);
+        }
+        printf("\n");
+        break;
+    case XMMFormat::I32: case XMMFormat::IF32:
+        for (int j = N/4 - 1; j >= 0; j--) {
+            printf("  %08" PRIx32, values.i32[j]);
+        }
+        printf("\n");
+        break;
+    case XMMFormat::I64: case XMMFormat::IF64:
+        for (int j = N/8 - 1; j >= 0; j--) {
+            printf("  %016" PRIx64, values.i64[j]);
+        }
+        printf("\n");
+        break;
+    }
+
+    if (format == XMMFormat::IF32 || format == XMMFormat::IF64) {
+        printf("       ");
+    }
+
+    switch (format) {
+    case XMMFormat::F32: case XMMFormat::IF32:
+        for (int j = N/4 - 1; j >= 0; j--) {
+            printf("  %f", values.f32[j]);
+        }
+        printf("\n");
+        break;
+    case XMMFormat::F64: case XMMFormat::IF64:
+        for (int j = N/8 - 1; j >= 0; j--) {
+            printf("  %lf", values.f64[j]);
+        }
+        printf("\n");
+        break;
+    }
+}
+
+void printXMMRegs(VirtualProcessor& vp, XMMFormat format) noexcept {
     auto cpuMode = getCPUMode(vp);
     const uint8_t maxMMRegs = (cpuMode == CPUMode::IA32e) ? 32 : 8;
 
@@ -688,46 +737,11 @@ void printXMMRegs(VirtualProcessor& vp, MMBits bits) noexcept {
 
         const auto& v = value.xmm;
         printf("XMM%-2u =", i);
-        switch (bits) {
-        case MMBits::_8:
-            for (int j = 15; j >= 0; j--) {
-                printf(" %02" PRIx8, v.i8[j]);
-            }
-            printf("\n");
-            break;
-        case MMBits::_16:
-            for (int j = 7; j >= 0; j--) {
-                printf("  %04" PRIx16, v.i16[j]);
-            }
-            printf("\n");
-            break;
-        case MMBits::_32:
-            for (int j = 3; j >= 0; j--) {
-                printf("  %08" PRIx32, v.i32[j]);
-            }
-            printf("\n");
-            printf("       ");
-            for (int j = 3; j >= 0; j--) {
-                printf("  %f", v.f32[j]);
-            }
-            printf("\n");
-            break;
-        case MMBits::_64:
-            for (int j = 1; j >= 0; j--) {
-                printf("  %016" PRIx64, v.i64[j]);
-            }
-            printf("\n");
-            printf("       ");
-            for (int j = 1; j >= 0; j--) {
-                printf("  %lf", v.f64[j]);
-            }
-            printf("\n");
-            break;
-        }
+        printXMMVals<16>(v, format);
     }
 }
 
-void printYMMRegs(VirtualProcessor& vp, MMBits bits) noexcept {
+void printYMMRegs(VirtualProcessor& vp, XMMFormat format) noexcept {
     auto cpuMode = getCPUMode(vp);
     const uint8_t maxMMRegs = (cpuMode == CPUMode::IA32e) ? 32 : 8;
 
@@ -740,46 +754,11 @@ void printYMMRegs(VirtualProcessor& vp, MMBits bits) noexcept {
 
         const auto& v = value.ymm;
         printf("YMM%-2u =", i);
-        switch (bits) {
-        case MMBits::_8:
-            for (int j = 31; j >= 0; j--) {
-                printf(" %02" PRIx8, v.i8[j]);
-            }
-            printf("\n");
-            break;
-        case MMBits::_16:
-            for (int j = 15; j >= 0; j--) {
-                printf("  %04" PRIx16, v.i16[j]);
-            }
-            printf("\n");
-            break;
-        case MMBits::_32:
-            for (int j = 7; j >= 0; j--) {
-                printf("  %08" PRIx32, v.i32[j]);
-            }
-            printf("\n");
-            printf("       ");
-            for (int j = 7; j >= 0; j--) {
-                printf("  %f", v.f32[j]);
-            }
-            printf("\n");
-            break;
-        case MMBits::_64:
-            for (int j = 3; j >= 0; j--) {
-                printf("  %016" PRIx64, v.i64[j]);
-            }
-            printf("\n");
-            printf("       ");
-            for (int j = 3; j >= 0; j--) {
-                printf("  %lf", v.f64[j]);
-            }
-            printf("\n");
-            break;
-        }
+        printXMMVals<32>(v, format);
     }
 }
 
-void printZMMRegs(VirtualProcessor& vp, MMBits bits) noexcept {
+void printZMMRegs(VirtualProcessor& vp, XMMFormat format) noexcept {
     auto cpuMode = getCPUMode(vp);
     const uint8_t maxMMRegs = (cpuMode == CPUMode::IA32e) ? 32 : 8;
 
@@ -791,43 +770,8 @@ void printZMMRegs(VirtualProcessor& vp, MMBits bits) noexcept {
         }
 
         const auto& v = value.zmm;
-        printf("YMM%-2u =", i);
-        switch (bits) {
-        case MMBits::_8:
-            for (int j = 63; j >= 0; j--) {
-                printf(" %02" PRIx8, v.i8[j]);
-            }
-            printf("\n");
-            break;
-        case MMBits::_16:
-            for (int j = 31; j >= 0; j--) {
-                printf("  %04" PRIx16, v.i16[j]);
-            }
-            printf("\n");
-            break;
-        case MMBits::_32:
-            for (int j = 15; j >= 0; j--) {
-                printf("  %08" PRIx32, v.i32[j]);
-            }
-            printf("\n");
-            printf("       ");
-            for (int j = 15; j >= 0; j--) {
-                printf("  %f", v.f32[j]);
-            }
-            printf("\n");
-            break;
-        case MMBits::_64:
-            for (int j = 7; j >= 0; j--) {
-                printf("  %016" PRIx64, v.i64[j]);
-            }
-            printf("\n");
-            printf("       ");
-            for (int j = 7; j >= 0; j--) {
-                printf("  %lf", v.f64[j]);
-            }
-            printf("\n");
-            break;
-        }
+        printf("ZMM%-2u =", i);
+        printXMMVals<64>(v, format);
     }
 }
 

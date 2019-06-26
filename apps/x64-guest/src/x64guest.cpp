@@ -387,7 +387,7 @@ int main(int argc, char* argv[]) {
         }
 
         printRegs(vp);
-        printMMRegs(vp, MMBits::_16);
+        printMMRegs(vp, MMFormat::I16);
         printf("\n");
 
         auto& exitInfo = vp.GetVMExitInfo();
@@ -437,7 +437,7 @@ int main(int argc, char* argv[]) {
         }
 
         printRegs(vp);
-        printXMMRegs(vp, MMBits::_32);
+        printXMMRegs(vp, XMMFormat::F32);
         printf("\n");
 
         auto& exitInfo = vp.GetVMExitInfo();
@@ -491,7 +491,7 @@ int main(int argc, char* argv[]) {
         }
 
         printRegs(vp);
-        printXMMRegs(vp, MMBits::_64);
+        printXMMRegs(vp, XMMFormat::F64);
         printf("\n");
 
         auto& exitInfo = vp.GetVMExitInfo();
@@ -545,7 +545,7 @@ int main(int argc, char* argv[]) {
         }
 
         printRegs(vp);
-        printXMMRegs(vp, MMBits::_64);
+        printXMMRegs(vp, XMMFormat::F64);
         printf("\n");
 
         auto& exitInfo = vp.GetVMExitInfo();
@@ -587,6 +587,57 @@ int main(int argc, char* argv[]) {
 
     printf("\n");
 
+    // ----- SSSE3 ----------------------------------------------------------------------------------------------------
+
+    // Run until HLT is reached
+    running = true;
+    while (running) {
+        auto execStatus = vp.Run();
+        if (execStatus != VPExecutionStatus::OK) {
+            printf("Virtual CPU execution failed\n");
+            break;
+        }
+
+        printRegs(vp);
+        printXMMRegs(vp, XMMFormat::I32);
+        printf("\n");
+
+        auto& exitInfo = vp.GetVMExitInfo();
+        switch (exitInfo.reason) {
+        case VMExitReason::HLT:
+            printf("HLT reached\n");
+            running = false;
+            break;
+        case VMExitReason::Shutdown:
+            printf("VCPU shutting down\n");
+            running = false;
+            break;
+        case VMExitReason::Error:
+            printf("VCPU execution failed\n");
+            running = false;
+            break;
+        }
+    }
+
+    // Check result
+    {
+        RegValue rax, rsi, xmm0;
+        vp.RegRead(Reg::RAX, rax);
+        vp.RegRead(Reg::RSI, rsi);   // contains address of result in memory
+        vp.RegRead(Reg::XMM0, xmm0);
+
+        int memValue[4];
+        vp.LMemRead(rsi.u64, sizeof(memValue), &memValue);
+
+        // Reinterpret RAX as if it were the lowest 64 bits of XMM0
+        if (rax.xmm.i32[0] == 5555 && rax.xmm.i32[1] == 5555) printf("RAX contains the correct result\n");
+        if (memValue[0] == 5555 && memValue[1] == 5555 && memValue[2] == 5555 && memValue[3] == 5555) printf("Memory contains the correct result\n");
+        if (xmm0.xmm.i32[0] == 5555 && xmm0.xmm.i32[1] == 5555 && xmm0.xmm.i32[2] == 5555 && xmm0.xmm.i32[3] == 5555) printf("XMM0 contains the correct result\n");
+        printf("SSSE3 test complete\n");
+    }
+
+    printf("\n");
+
     // TODO: continue implementing test verifications
 
     // ----- End ------------------------------------------------------------------------------------------------------
@@ -594,11 +645,11 @@ int main(int argc, char* argv[]) {
     printf("Final VCPU state:\n");
     printRegs(vp);
     printSTRegs(vp);
-    printMMRegs(vp, MMBits::_16);
+    printMMRegs(vp, MMFormat::I16);
     printMXCSRRegs(vp);
-    printXMMRegs(vp, MMBits::_32);
-    printYMMRegs(vp, MMBits::_64);
-    printZMMRegs(vp, MMBits::_64);
+    printXMMRegs(vp, XMMFormat::IF32);
+    printYMMRegs(vp, XMMFormat::IF64);
+    printZMMRegs(vp, XMMFormat::IF64);
     printf("\n");
 
     printf("Linear memory address translations:\n");

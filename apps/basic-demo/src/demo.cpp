@@ -1703,11 +1703,11 @@ int main() {
     printf("\nFinal CPU register state:\n");
     printRegs(vp);
     printSTRegs(vp);
-    printMMRegs(vp, MMBits::_16);
+    printMMRegs(vp, MMFormat::I16);
     printMXCSRRegs(vp);
-    printXMMRegs(vp, MMBits::_32);
-    printYMMRegs(vp, MMBits::_64);
-    printZMMRegs(vp, MMBits::_64);
+    printXMMRegs(vp, XMMFormat::IF32);
+    printYMMRegs(vp, XMMFormat::IF64);
+    printZMMRegs(vp, XMMFormat::IF64);
     printf("\n");
 
     // ----- Linear memory address translation --------------------------------------------------------------------------------

@@ -95,7 +95,15 @@ SSE3.Test:
     hlt                     ; Let the host check the result
 
 SSSE3.Test:
-    ; TODO: write test
+    movupd xmm0, [ssse3.v]  ; Load vector
+    
+    pabsd xmm0, xmm0        ; Compute absolute values
+    phaddd xmm1, xmm0       ; Horizontally add each pair of consecutive 32-bit integers from xmm0, pack results into xmm1
+    
+    movupd [ssse3.r], xmm1  ; Write result to memory
+    movq rax, xmm1          ; Copy low 64 bits of result to RAX
+    lea rsi, [ssse3.r]      ; Put address of result into RSI
+    
     hlt
 
 SSE4.Test:   ; Includes SSE4.1 and SSE4.2
@@ -163,7 +171,8 @@ ALIGN 16
     sse3.r:  resq 2
 
     ; Data for SSSE3 test
-    ; TODO
+    ssse3.v: dd 1234, -5678, -1234, 5678
+    ssse3.r: resd 4
 
     ; Data for SSE4 test
     ; TODO
