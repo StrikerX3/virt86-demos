@@ -43,11 +43,13 @@ MMX.Test:
     movq mm0, [mmx.v1]      ; Load first vector
     movq mm1, [mmx.v2]      ; Load second vector
     movq mm2, [mmx.v3]      ; Load third vector
+
     pmullw mm0, mm1         ; Multiply v1 and v2, store low words into mm0
     paddw mm0, mm2          ; Add v3 to result
-    movq [mmx.r], mm0       ; Move result to memory
+
+    movq [mmx.r], mm0       ; Write result to memory
     movq rax, mm0           ; Copy result to RAX
-    lea rsi, [mmx.r]        ; Move address of result to RSI
+    lea rsi, [mmx.r]        ; Put address of result into RSI
 
     hlt                     ; Let the host check the results
     emms                    ; Be a good citizen and clear MMX state after we're done
@@ -60,19 +62,42 @@ SSE.Test:
     addps xmm0, xmm1        ; Add v1 and v2, store result in xmm0
     mulps xmm0, xmm1        ; Multiply result by v2, store result in xmm0
     subps xmm0, xmm1        ; Subtract v2 from result, store result in xmm0
+
     movups [sse.r], xmm0    ; Write result to memory
     movq rax, xmm0          ; Copy low 64 bits of result to RAX
-    lea rsi, [sse.r]        ; Move address of result to RSI
+    lea rsi, [sse.r]        ; Put address of result into RSI
 
     hlt                     ; Let the host check the result
 
 SSE2.Test:
-    ; TODO: write test
+    movupd xmm0, [sse2.v1]  ; Load first vector
+    movupd xmm1, [sse2.v2]  ; Load second vector
+
+    addpd xmm0, xmm1        ; Add v1 and v2, store result in xmm0
+    mulpd xmm0, xmm1        ; Multiply result by v2, store result in xmm0
+    subpd xmm0, xmm1        ; Subtract v2 from result, store result in xmm0
+
+    movupd [sse2.r], xmm0   ; Write result to memory
+    movq rax, xmm0          ; Copy low 64 bits of result to RAX
+    lea rsi, [sse2.r]       ; Put address of result into RSI
+
     hlt                     ; Let the host check the result
 
-SSE3.Test:   ; Includes SSSE3
-    ; TODO: write test
+SSE3.Test:
+    movupd xmm0, [sse3.v1]  ; Load first vector
+    movupd xmm1, [sse3.v2]  ; Load second vector
+    
+    haddpd xmm0, xmm1       ; Horizontally add the values in xmm1 and xmm0, store results in xmm0
+  
+    movupd [sse3.r], xmm0   ; Write result to memory
+    movq rax, xmm0          ; Copy low 64 bits of result to RAX
+    lea rsi, [sse3.r]       ; Put address of result into RSI
+  
     hlt                     ; Let the host check the result
+
+SSSE3.Test:
+    ; TODO: write test
+    hlt
 
 SSE4.Test:   ; Includes SSE4.1 and SSE4.2
     ; TODO: write test
@@ -92,10 +117,14 @@ AVX.Test:
     vmovups ymm0, [avx.v1]  ; Load v1 into ymm0
     vmovups ymm1, [avx.v2]  ; Load v2 into ymm1
     vmovups ymm2, [avx.v3]  ; Load v3 into ymm2
-    vaddps ymm3, ymm0, ymm1 ; Add ymm3 to ymm0, store result in ymm1
+
+    vaddps ymm3, ymm0, ymm1 ; Add ymm0 and ymm1, store result in ymm3
     vmulps ymm3, ymm3, ymm2 ; Multiply ymm3 with ymm2, store result in ymm3
-    vmovups [avx.r], ymm3   ; Copy result to memory
-    lea rsi, [avx.r]        ; Move address of result to RSI
+
+    vmovups [avx.r], ymm3   ; Write result to memory
+    vmovq rax, xmm3         ; Copy low 64 bits of result to RAX
+    lea rsi, [avx.r]        ; Put address of result into RSI
+
     hlt                     ; Let the host check the result
 
 FMA3.Test:
@@ -125,9 +154,16 @@ ALIGN 16
     sse.r:  resd 4
 
     ; Data for SSE2 test
-    ; TODO
+    sse2.v1: dq 1.1, 2.2
+    sse2.v2: dq 3.3, 4.4
+    sse2.r:  resq 2
 
     ; Data for SSE3 test
+    sse3.v1: dq 1.5, 2.5
+    sse3.v2: dq 2.5, -0.5
+    sse3.r:  resq 2
+
+    ; Data for SSSE3 test
     ; TODO
 
     ; Data for SSE4 test

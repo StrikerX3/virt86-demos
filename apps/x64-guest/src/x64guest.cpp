@@ -32,6 +32,8 @@ SOFTWARE.
 #include "align_alloc.hpp"
 #include "utils.hpp"
 
+#include <cmath>
+
 #if defined(_WIN32)
 #  include <Windows.h>
 #elif defined(__linux__)
@@ -392,13 +394,6 @@ int main(int argc, char* argv[]) {
         switch (exitInfo.reason) {
         case VMExitReason::HLT:
             printf("HLT reached\n");
-            {
-                RegValue rax;
-                vp.RegRead(Reg::RAX, rax);
-                if (rax.u64 == checkValue2) {
-                    printf("Got the right value\n");
-                }
-            }
             running = false;
             break;
         case VMExitReason::Shutdown:
@@ -425,6 +420,7 @@ int main(int argc, char* argv[]) {
         if (rax.u64 == 0x002c00210016000b) printf("RAX contains the correct result\n");
         if (memValue == 0x002c00210016000b) printf("Memory contains the correct result\n");
         if (mm0.mm.i64[0] == 0x002c00210016000b) printf("MM0 contains the correct result\n");
+        printf("MMX test complete\n");
     }
 
     printf("\n");
@@ -448,13 +444,6 @@ int main(int argc, char* argv[]) {
         switch (exitInfo.reason) {
         case VMExitReason::HLT:
             printf("HLT reached\n");
-            {
-                RegValue rax;
-                vp.RegRead(Reg::RAX, rax);
-                if (rax.u64 == checkValue2) {
-                    printf("Got the right value\n");
-                }
-            }
             running = false;
             break;
         case VMExitReason::Shutdown:
@@ -485,6 +474,115 @@ int main(int argc, char* argv[]) {
         if (feq(rax.xmm.f32[0], 30.8) && feq(rax.xmm.f32[1], 51.48)) printf("RAX contains the correct result\n");
         if (feq(memValue[0], 30.8) && feq(memValue[1], 51.48) && feq(memValue[2], 77.0) && feq(memValue[3], 107.36)) printf("Memory contains the correct result\n");
         if (feq(xmm0.xmm.f32[0], 30.8) && feq(xmm0.xmm.f32[1], 51.48) && feq(xmm0.xmm.f32[2], 77.0) && feq(xmm0.xmm.f32[3], 107.36)) printf("XMM0 contains the correct result\n");
+        printf("SSE test complete\n");
+    }
+
+    printf("\n");
+
+    // ----- SSE2 -----------------------------------------------------------------------------------------------------
+
+    // Run until HLT is reached
+    running = true;
+    while (running) {
+        auto execStatus = vp.Run();
+        if (execStatus != VPExecutionStatus::OK) {
+            printf("Virtual CPU execution failed\n");
+            break;
+        }
+
+        printRegs(vp);
+        printXMMRegs(vp, MMBits::_64);
+        printf("\n");
+
+        auto& exitInfo = vp.GetVMExitInfo();
+        switch (exitInfo.reason) {
+        case VMExitReason::HLT:
+            printf("HLT reached\n");
+            running = false;
+            break;
+        case VMExitReason::Shutdown:
+            printf("VCPU shutting down\n");
+            running = false;
+            break;
+        case VMExitReason::Error:
+            printf("VCPU execution failed\n");
+            running = false;
+            break;
+        }
+    }
+
+    // Check result
+    {
+        RegValue rax, rsi, xmm0;
+        vp.RegRead(Reg::RAX, rax);
+        vp.RegRead(Reg::RSI, rsi);   // contains address of result in memory
+        vp.RegRead(Reg::XMM0, xmm0);
+
+        double memValue[4];
+        vp.LMemRead(rsi.u64, sizeof(memValue), &memValue);
+
+        static constexpr double epsilon = 1e-9f;
+        auto feq = [](double x, double y) -> bool { return fabs(x - y) <= epsilon; };
+
+        // Reinterpret RAX as if it were the lowest 64 bits of XMM0
+        if (feq(rax.xmm.f64[0], 30.8)) printf("RAX contains the correct result\n");
+        if (feq(memValue[0], 30.8) && feq(memValue[1], 51.48)) printf("Memory contains the correct result\n");
+        if (feq(xmm0.xmm.f64[0], 30.8) && feq(xmm0.xmm.f64[1], 51.48)) printf("XMM0 contains the correct result\n");
+        printf("SSE2 test complete\n");
+    }
+
+    printf("\n");
+
+    // ----- SSE3 -----------------------------------------------------------------------------------------------------
+
+    // Run until HLT is reached
+    running = true;
+    while (running) {
+        auto execStatus = vp.Run();
+        if (execStatus != VPExecutionStatus::OK) {
+            printf("Virtual CPU execution failed\n");
+            break;
+        }
+
+        printRegs(vp);
+        printXMMRegs(vp, MMBits::_64);
+        printf("\n");
+
+        auto& exitInfo = vp.GetVMExitInfo();
+        switch (exitInfo.reason) {
+        case VMExitReason::HLT:
+            printf("HLT reached\n");
+            running = false;
+            break;
+        case VMExitReason::Shutdown:
+            printf("VCPU shutting down\n");
+            running = false;
+            break;
+        case VMExitReason::Error:
+            printf("VCPU execution failed\n");
+            running = false;
+            break;
+        }
+    }
+
+    // Check result
+    {
+        RegValue rax, rsi, xmm0;
+        vp.RegRead(Reg::RAX, rax);
+        vp.RegRead(Reg::RSI, rsi);   // contains address of result in memory
+        vp.RegRead(Reg::XMM0, xmm0);
+
+        double memValue[4];
+        vp.LMemRead(rsi.u64, sizeof(memValue), &memValue);
+
+        static constexpr double epsilon = 1e-9f;
+        auto feq = [](double x, double y) -> bool { return fabs(x - y) <= epsilon; };
+
+        // Reinterpret RAX as if it were the lowest 64 bits of XMM0
+        if (feq(rax.xmm.f64[0], 3.3)) printf("RAX contains the correct result\n");
+        if (feq(memValue[0], 3.3) && feq(memValue[1], 7.7)) printf("Memory contains the correct result\n");
+        if (feq(xmm0.xmm.f64[0], 3.3) && feq(xmm0.xmm.f64[1], 7.7)) printf("XMM0 contains the correct result\n");
+        printf("SSE3 test complete\n");
     }
 
     printf("\n");
