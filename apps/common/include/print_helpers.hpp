@@ -33,6 +33,7 @@ enum class MMBits {
     _8, _16, _32, _64
 };
 
+void printMemoryMappingStatus(virt86::MemoryMappingStatus status) noexcept;
 void printFPExts(virt86::FloatingPointExtension fpExts) noexcept;
 void printRegs(virt86::VirtualProcessor& vp) noexcept;
 void printFPUControlRegs(virt86::VirtualProcessor& vp) noexcept;

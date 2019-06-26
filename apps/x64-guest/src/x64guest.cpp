@@ -175,37 +175,20 @@ int main(int argc, char* argv[]) {
     
     // Map ROM to the top of the 32-bit address range
     printf("Mapping ROM... ");
-    auto memMapStatus = vm.MapGuestMemory(romBase, romSize, MemoryFlags::Read | MemoryFlags::Execute, rom);
-    switch (memMapStatus) {
-    case MemoryMappingStatus::OK: printf("succeeded\n"); break;
-    case MemoryMappingStatus::Unsupported: printf("failed: unsupported operation\n"); return -1;
-    case MemoryMappingStatus::MisalignedHostMemory: printf("failed: memory host block is misaligned\n"); return -1;
-    case MemoryMappingStatus::MisalignedAddress: printf("failed: base address is misaligned\n"); return -1;
-    case MemoryMappingStatus::MisalignedSize: printf("failed: size is misaligned\n"); return -1;
-    case MemoryMappingStatus::EmptyRange: printf("failed: size is zero\n"); return -1;
-    case MemoryMappingStatus::AlreadyAllocated: printf("failed: host memory block is already allocated\n"); return -1;
-    case MemoryMappingStatus::InvalidFlags: printf("failed: invalid flags supplied\n"); return -1;
-    case MemoryMappingStatus::Failed: printf("failed\n"); return -1;
-	case MemoryMappingStatus::OutOfBounds: printf("out of bounds\n"); return -1;
-	default: printf("failed: unhandled reason (%d)\n", static_cast<int>(memMapStatus)); return -1;
+    {
+        auto memMapStatus = vm.MapGuestMemory(romBase, romSize, MemoryFlags::Read | MemoryFlags::Execute, rom);
+        printMemoryMappingStatus(memMapStatus);
+        if (memMapStatus != MemoryMappingStatus::OK) return -1;
     }
 
     // Map RAM to the bottom of the 32-bit address range
     printf("Mapping RAM... ");
-    memMapStatus = vm.MapGuestMemory(ramBase, ramSize, MemoryFlags::Read | MemoryFlags::Write | MemoryFlags::Execute | MemoryFlags::DirtyPageTracking, ram);
-    switch (memMapStatus) {
-    case MemoryMappingStatus::OK: printf("succeeded\n"); break;
-    case MemoryMappingStatus::Unsupported: printf("failed: unsupported operation\n"); return -1;
-    case MemoryMappingStatus::MisalignedHostMemory: printf("failed: memory host block is misaligned\n"); return -1;
-    case MemoryMappingStatus::MisalignedAddress: printf("failed: base address is misaligned\n"); return -1;
-    case MemoryMappingStatus::MisalignedSize: printf("failed: size is misaligned\n"); return -1;
-    case MemoryMappingStatus::EmptyRange: printf("failed: size is zero\n"); return -1;
-    case MemoryMappingStatus::AlreadyAllocated: printf("failed: host memory block is already allocated\n"); return -1;
-    case MemoryMappingStatus::InvalidFlags: printf("failed: invalid flags supplied\n"); return -1;
-    case MemoryMappingStatus::Failed: printf("failed\n"); return -1;
-	case MemoryMappingStatus::OutOfBounds: printf("out of bounds\n"); return -1;
-	default: printf("failed: unhandled reason (%d)\n", static_cast<int>(memMapStatus)); return -1;
+    {
+        auto memMapStatus = vm.MapGuestMemory(ramBase, ramSize, MemoryFlags::Read | MemoryFlags::Write | MemoryFlags::Execute | MemoryFlags::DirtyPageTracking, ram);
+        printMemoryMappingStatus(memMapStatus);
+        if (memMapStatus != MemoryMappingStatus::OK) return -1;
     }
+
 
     // Get the virtual processor
     printf("Retrieving virtual processor... ");
@@ -290,19 +273,10 @@ int main(int argc, char* argv[]) {
 
     // Map the memory to the guest at the desired base address
     printf("Mapping additional RAM to 0x%llx... ", moreRamBase);
-    memMapStatus = vm.MapGuestMemory(moreRamBase, moreRamSize, MemoryFlags::Read | MemoryFlags::Write | MemoryFlags::Execute, moreRam);
-    switch (memMapStatus) {
-    case MemoryMappingStatus::OK: printf("succeeded\n"); break;
-    case MemoryMappingStatus::Unsupported: printf("failed: unsupported operation\n"); return -1;
-    case MemoryMappingStatus::MisalignedHostMemory: printf("failed: memory host block is misaligned\n"); return -1;
-    case MemoryMappingStatus::MisalignedAddress: printf("failed: base address is misaligned\n"); return -1;
-    case MemoryMappingStatus::MisalignedSize: printf("failed: size is misaligned\n"); return -1;
-    case MemoryMappingStatus::EmptyRange: printf("failed: size is zero\n"); return -1;
-    case MemoryMappingStatus::AlreadyAllocated: printf("failed: host memory block is already allocated\n"); return -1;
-    case MemoryMappingStatus::InvalidFlags: printf("failed: invalid flags supplied\n"); return -1;
-	case MemoryMappingStatus::Failed: printf("failed\n"); return -1;
-	case MemoryMappingStatus::OutOfBounds: printf("out of bounds\n"); return -1;
-    default: printf("failed: unhandled reason (%d)\n", static_cast<int>(memMapStatus)); return -1;
+    {
+        auto memMapStatus = vm.MapGuestMemory(moreRamBase, moreRamSize, MemoryFlags::Read | MemoryFlags::Write | MemoryFlags::Execute, moreRam);
+        printMemoryMappingStatus(memMapStatus);
+        if (memMapStatus != MemoryMappingStatus::OK) return -1;
     }
 
     // Map the newly added physical page to linear address 0x100000000

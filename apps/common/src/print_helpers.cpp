@@ -34,6 +34,22 @@ SOFTWARE.
 
 using namespace virt86;
 
+void printMemoryMappingStatus(virt86::MemoryMappingStatus status) noexcept {
+    switch (status) {
+    case MemoryMappingStatus::OK: printf("succeeded\n"); break;
+    case MemoryMappingStatus::Unsupported: printf("failed: unsupported operation\n"); break;
+    case MemoryMappingStatus::MisalignedHostMemory: printf("failed: memory host block is misaligned\n"); break;
+    case MemoryMappingStatus::MisalignedAddress: printf("failed: base address is misaligned\n"); break;
+    case MemoryMappingStatus::MisalignedSize: printf("failed: size is misaligned\n"); break;
+    case MemoryMappingStatus::EmptyRange: printf("failed: size is zero\n"); break;
+    case MemoryMappingStatus::AlreadyAllocated: printf("failed: host memory block is already allocated\n"); break;
+    case MemoryMappingStatus::InvalidFlags: printf("failed: invalid flags supplied\n"); break;
+    case MemoryMappingStatus::Failed: printf("failed\n"); break;
+    case MemoryMappingStatus::OutOfBounds: printf("out of bounds\n"); break;
+    default: printf("failed: unhandled reason (%d)\n", static_cast<int>(status)); break;
+    }
+}
+
 void printFPExts(FloatingPointExtension fpExts) noexcept {
 	auto bmFpExts = BitmaskEnum(fpExts);
 	if (!bmFpExts) printf(" None");
