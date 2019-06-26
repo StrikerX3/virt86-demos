@@ -171,7 +171,7 @@ ALIGN 16
     sse3.r:  resq 2
 
     ; Data for SSSE3 test
-    ssse3.v: dd 1234, -5678, -1234, 5678
+    ssse3.v: dd 1234, -4321, -1234, 4321
     ssse3.r: resd 4
 
     ; Data for SSE4 test
