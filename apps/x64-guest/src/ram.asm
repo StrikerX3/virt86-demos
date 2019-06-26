@@ -54,7 +54,6 @@ MMX.Test:
     hlt                     ; Let the host check the results
     emms                    ; Be a good citizen and clear MMX state after we're done
 
-
 SSE.Test:
     movups xmm0, [sse.v1]   ; Load first vector
     movups xmm1, [sse.v2]   ; Load second vector
