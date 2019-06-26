@@ -51,44 +51,44 @@ void printMemoryMappingStatus(virt86::MemoryMappingStatus status) noexcept {
 }
 
 void printFPExts(FloatingPointExtension fpExts) noexcept {
-	auto bmFpExts = BitmaskEnum(fpExts);
-	if (!bmFpExts) printf(" None");
-	else {
-		if (bmFpExts.AnyOf(FloatingPointExtension::MMX)) printf(" MMX");
-		if (bmFpExts.AnyOf(FloatingPointExtension::SSE)) printf(" SSE");
-		if (bmFpExts.AnyOf(FloatingPointExtension::SSE2)) printf(" SSE2");
-		if (bmFpExts.AnyOf(FloatingPointExtension::SSE3)) printf(" SSE3");
-		if (bmFpExts.AnyOf(FloatingPointExtension::SSSE3)) printf(" SSSE3");
-		if (bmFpExts.AnyOf(FloatingPointExtension::SSE4_1)) printf(" SSE4.1");
-		if (bmFpExts.AnyOf(FloatingPointExtension::SSE4_2)) printf(" SSE4.2");
+    auto bmFpExts = BitmaskEnum(fpExts);
+    if (!bmFpExts) printf(" None");
+    else {
+        if (bmFpExts.AnyOf(FloatingPointExtension::MMX)) printf(" MMX");
+        if (bmFpExts.AnyOf(FloatingPointExtension::SSE)) printf(" SSE");
+        if (bmFpExts.AnyOf(FloatingPointExtension::SSE2)) printf(" SSE2");
+        if (bmFpExts.AnyOf(FloatingPointExtension::SSE3)) printf(" SSE3");
+        if (bmFpExts.AnyOf(FloatingPointExtension::SSSE3)) printf(" SSSE3");
+        if (bmFpExts.AnyOf(FloatingPointExtension::SSE4_1)) printf(" SSE4.1");
+        if (bmFpExts.AnyOf(FloatingPointExtension::SSE4_2)) printf(" SSE4.2");
         if (bmFpExts.AnyOf(FloatingPointExtension::SSE4a)) printf(" SSE4a");
         if (bmFpExts.AnyOf(FloatingPointExtension::XOP)) printf(" XOP");
         if (bmFpExts.AnyOf(FloatingPointExtension::F16C)) printf(" F16C");
         if (bmFpExts.AnyOf(FloatingPointExtension::FMA4)) printf(" FMA4");
         if (bmFpExts.AnyOf(FloatingPointExtension::AVX)) printf(" AVX");
         if (bmFpExts.AnyOf(FloatingPointExtension::FMA3)) printf(" FMA3");
-		if (bmFpExts.AnyOf(FloatingPointExtension::AVX2)) printf(" AVX2");
-		if (bmFpExts.AnyOf(FloatingPointExtension::AVX512F)) {
-			printf(" AVX-512[F");
-			if (bmFpExts.AnyOf(FloatingPointExtension::AVX512DQ)) printf(" DQ");
-			if (bmFpExts.AnyOf(FloatingPointExtension::AVX512IFMA)) printf(" IFMA");
-			if (bmFpExts.AnyOf(FloatingPointExtension::AVX512PF)) printf(" PF");
-			if (bmFpExts.AnyOf(FloatingPointExtension::AVX512ER)) printf(" ER");
-			if (bmFpExts.AnyOf(FloatingPointExtension::AVX512CD)) printf(" CD");
-			if (bmFpExts.AnyOf(FloatingPointExtension::AVX512BW)) printf(" BW");
-			if (bmFpExts.AnyOf(FloatingPointExtension::AVX512VL)) printf(" VL");
-			if (bmFpExts.AnyOf(FloatingPointExtension::AVX512VBMI)) printf(" VBMI");
-			if (bmFpExts.AnyOf(FloatingPointExtension::AVX512VBMI2)) printf(" VBMI2");
-			if (bmFpExts.AnyOf(FloatingPointExtension::AVX512GFNI)) printf(" GFNI");
-			if (bmFpExts.AnyOf(FloatingPointExtension::AVX512VAES)) printf(" VAES");
-			if (bmFpExts.AnyOf(FloatingPointExtension::AVX512VNNI)) printf(" VNNI");
-			if (bmFpExts.AnyOf(FloatingPointExtension::AVX512BITALG)) printf(" BITALG");
-			if (bmFpExts.AnyOf(FloatingPointExtension::AVX512VPOPCNTDQ)) printf(" VPOPCNTDQ");
-			if (bmFpExts.AnyOf(FloatingPointExtension::AVX512QVNNIW)) printf(" QVNNIW");
-			if (bmFpExts.AnyOf(FloatingPointExtension::AVX512QFMA)) printf(" QFMA");
-			printf("]");
-		}
-	}
+        if (bmFpExts.AnyOf(FloatingPointExtension::AVX2)) printf(" AVX2");
+        if (bmFpExts.AnyOf(FloatingPointExtension::AVX512F)) {
+            printf(" AVX-512[F");
+            if (bmFpExts.AnyOf(FloatingPointExtension::AVX512DQ)) printf(" DQ");
+            if (bmFpExts.AnyOf(FloatingPointExtension::AVX512IFMA)) printf(" IFMA");
+            if (bmFpExts.AnyOf(FloatingPointExtension::AVX512PF)) printf(" PF");
+            if (bmFpExts.AnyOf(FloatingPointExtension::AVX512ER)) printf(" ER");
+            if (bmFpExts.AnyOf(FloatingPointExtension::AVX512CD)) printf(" CD");
+            if (bmFpExts.AnyOf(FloatingPointExtension::AVX512BW)) printf(" BW");
+            if (bmFpExts.AnyOf(FloatingPointExtension::AVX512VL)) printf(" VL");
+            if (bmFpExts.AnyOf(FloatingPointExtension::AVX512VBMI)) printf(" VBMI");
+            if (bmFpExts.AnyOf(FloatingPointExtension::AVX512VBMI2)) printf(" VBMI2");
+            if (bmFpExts.AnyOf(FloatingPointExtension::AVX512GFNI)) printf(" GFNI");
+            if (bmFpExts.AnyOf(FloatingPointExtension::AVX512VAES)) printf(" VAES");
+            if (bmFpExts.AnyOf(FloatingPointExtension::AVX512VNNI)) printf(" VNNI");
+            if (bmFpExts.AnyOf(FloatingPointExtension::AVX512BITALG)) printf(" BITALG");
+            if (bmFpExts.AnyOf(FloatingPointExtension::AVX512VPOPCNTDQ)) printf(" VPOPCNTDQ");
+            if (bmFpExts.AnyOf(FloatingPointExtension::AVX512QVNNIW)) printf(" QVNNIW");
+            if (bmFpExts.AnyOf(FloatingPointExtension::AVX512QFMA)) printf(" QFMA");
+            printf("]");
+        }
+    }
 }
 
 #define PRINT_FLAG(flags, prefix, flag) \
@@ -319,197 +319,197 @@ SegmentSize getSegmentSize(VirtualProcessor& vp, Reg segmentReg) noexcept {
 }
 
 void printSeg(VirtualProcessor& vp, Reg seg) noexcept {
-	CPUMode mode = getCPUMode(vp);
-	SegmentSize size = getSegmentSize(vp, seg);
-	RegValue value;
-	vp.RegRead(seg, value);
+    CPUMode mode = getCPUMode(vp);
+    SegmentSize size = getSegmentSize(vp, seg);
+    RegValue value;
+    vp.RegRead(seg, value);
 
-	// In IA-32e mode:
-	// - Limit is ignored for CS, SS, DS, ES, FS and GS (effectively giving access to the entire memory)
-	// - CS, SS, DS, ES all have base addresses of 0
-	// - FS and GS have their base addresses stored in MSRs
-	// - LDT and TSS entries are extended to 16 bytes to accomodate a 64-bit base address
+    // In IA-32e mode:
+    // - Limit is ignored for CS, SS, DS, ES, FS and GS (effectively giving access to the entire memory)
+    // - CS, SS, DS, ES all have base addresses of 0
+    // - FS and GS have their base addresses stored in MSRs
+    // - LDT and TSS entries are extended to 16 bytes to accomodate a 64-bit base address
 
-	if (mode == CPUMode::IA32e) {
-		if (seg == Reg::LDTR || seg == Reg::TR) {
-			printf("%04" PRIx16 " -> %016" PRIx64 ":%08" PRIx32 " [%04" PRIx16 "] ", value.segment.selector, value.segment.base, value.segment.limit, value.segment.attributes.u16);
-		}
-		else {
-			printf("%04" PRIx16 " -> %016" PRIx64 "          [%04" PRIx16 "] ", value.segment.selector, value.segment.base, value.segment.attributes.u16);
-		}
-	}
-	else {
-		switch (size) {
-		case SegmentSize::_16: printf("%04" PRIx16 " -> %08" PRIx32 ":%04" PRIx16 "     [%04" PRIx16 "] ", value.segment.selector, (uint32_t)value.segment.base, (uint16_t)value.segment.limit, value.segment.attributes.u16); break;
-		case SegmentSize::_32: printf("%04" PRIx16 " -> %08" PRIx32 ":%08" PRIx32 " [%04" PRIx16 "] ", value.segment.selector, (uint32_t)value.segment.base, value.segment.limit, value.segment.attributes.u16); break;
-		}
-	}
+    if (mode == CPUMode::IA32e) {
+        if (seg == Reg::LDTR || seg == Reg::TR) {
+            printf("%04" PRIx16 " -> %016" PRIx64 ":%08" PRIx32 " [%04" PRIx16 "] ", value.segment.selector, value.segment.base, value.segment.limit, value.segment.attributes.u16);
+        }
+        else {
+            printf("%04" PRIx16 " -> %016" PRIx64 "          [%04" PRIx16 "] ", value.segment.selector, value.segment.base, value.segment.attributes.u16);
+        }
+    }
+    else {
+        switch (size) {
+        case SegmentSize::_16: printf("%04" PRIx16 " -> %08" PRIx32 ":%04" PRIx16 "     [%04" PRIx16 "] ", value.segment.selector, (uint32_t)value.segment.base, (uint16_t)value.segment.limit, value.segment.attributes.u16); break;
+        case SegmentSize::_32: printf("%04" PRIx16 " -> %08" PRIx32 ":%08" PRIx32 " [%04" PRIx16 "] ", value.segment.selector, (uint32_t)value.segment.base, value.segment.limit, value.segment.attributes.u16); break;
+        }
+    }
 
-	// Print attributes
-	if (value.segment.attributes.present) {
-		if (value.segment.attributes.system) {
-			if (value.segment.attributes.type & SEG_TYPE_CODE) {
-				if (mode == CPUMode::IA32e && value.segment.attributes.longMode) printf("64-bit code");
-				else if (value.segment.attributes.defaultSize) printf("32-bit code");
-				else printf("16-bit code");
-			}
-			else {
-				if (mode == CPUMode::IA32e) printf("64-bit data");
-				else if (value.segment.attributes.defaultSize) printf("32-bit data");
-				else printf("16-bit data");
-			}
-		}
-		else {
-			if (mode == CPUMode::IA32e) {
-				switch (value.segment.attributes.type) {
-				case 0b0010: printf("LDT"); break;
-				case 0b1001: printf("64-bit TSS (available)"); break;
-				case 0b1011: printf("64-bit TSS (busy)"); break;
-				case 0b1100: printf("64-bit call gate"); break;
-				case 0b1110: printf("64-bit interrupt gate"); break;
-				case 0b1111: printf("64-bit trap gate"); break;
-				default: printf("Reserved"); break;
-				}
-			}
-			else {
-				switch (value.segment.attributes.type) {
-				case 0b0010: printf("LDT"); break;
-				case 0b0001: printf("16-bit TSS (available)"); break;
-				case 0b0011: printf("16-bit TSS (busy)"); break;
-				case 0b0100: printf("16-bit call gate"); break;
-				case 0b0110: printf("16-bit interrupt gate"); break;
-				case 0b0111: printf("16-bit trap gate"); break;
-				case 0b0101: printf("Task gate"); break;
-				case 0b1001: printf("32-bit TSS (available)"); break;
-				case 0b1011: printf("32-bit TSS (busy)"); break;
-				case 0b1100: printf("32-bit call gate"); break;
-				case 0b1110: printf("32-bit interrupt gate"); break;
-				case 0b1111: printf("32-bit trap gate"); break;
-				default: printf("Reserved"); break;
-				}
-			}
-		}
-		
-		printf(" (");
-		printf((value.segment.attributes.granularity) ? "G=page" : "G=byte");
-		printf(" DPL=%u", value.segment.attributes.privilegeLevel);
-		if (value.segment.attributes.system) {
-			if (value.segment.attributes.type & SEG_TYPE_CODE) {
-				if (value.segment.attributes.type & SEG_TYPE_READABLE) printf(" R-X"); else printf(" --X");
-				if (value.segment.attributes.type & SEG_TYPE_ACCESSED) printf("A"); else printf("-");
-				if (value.segment.attributes.type & SEG_TYPE_CONFORMING) printf(" conforming");
-			}
-			else {
-				if (value.segment.attributes.type & SEG_TYPE_WRITABLE) printf(" RW-"); else printf(" R--");
-				if (value.segment.attributes.type & SEG_TYPE_ACCESSED) printf("A"); else printf("-");
-				if (value.segment.attributes.type & SEG_TYPE_EXPANDDOWN) printf(" expand-down");
-			}
-		}
-		if (value.segment.attributes.available) printf(" AVL");
-		printf(")");
-	}
+    // Print attributes
+    if (value.segment.attributes.present) {
+        if (value.segment.attributes.system) {
+            if (value.segment.attributes.type & SEG_TYPE_CODE) {
+                if (mode == CPUMode::IA32e && value.segment.attributes.longMode) printf("64-bit code");
+                else if (value.segment.attributes.defaultSize) printf("32-bit code");
+                else printf("16-bit code");
+            }
+            else {
+                if (mode == CPUMode::IA32e) printf("64-bit data");
+                else if (value.segment.attributes.defaultSize) printf("32-bit data");
+                else printf("16-bit data");
+            }
+        }
+        else {
+            if (mode == CPUMode::IA32e) {
+                switch (value.segment.attributes.type) {
+                case 0b0010: printf("LDT"); break;
+                case 0b1001: printf("64-bit TSS (available)"); break;
+                case 0b1011: printf("64-bit TSS (busy)"); break;
+                case 0b1100: printf("64-bit call gate"); break;
+                case 0b1110: printf("64-bit interrupt gate"); break;
+                case 0b1111: printf("64-bit trap gate"); break;
+                default: printf("Reserved"); break;
+                }
+            }
+            else {
+                switch (value.segment.attributes.type) {
+                case 0b0010: printf("LDT"); break;
+                case 0b0001: printf("16-bit TSS (available)"); break;
+                case 0b0011: printf("16-bit TSS (busy)"); break;
+                case 0b0100: printf("16-bit call gate"); break;
+                case 0b0110: printf("16-bit interrupt gate"); break;
+                case 0b0111: printf("16-bit trap gate"); break;
+                case 0b0101: printf("Task gate"); break;
+                case 0b1001: printf("32-bit TSS (available)"); break;
+                case 0b1011: printf("32-bit TSS (busy)"); break;
+                case 0b1100: printf("32-bit call gate"); break;
+                case 0b1110: printf("32-bit interrupt gate"); break;
+                case 0b1111: printf("32-bit trap gate"); break;
+                default: printf("Reserved"); break;
+                }
+            }
+        }
+        
+        printf(" (");
+        printf((value.segment.attributes.granularity) ? "G=page" : "G=byte");
+        printf(" DPL=%u", value.segment.attributes.privilegeLevel);
+        if (value.segment.attributes.system) {
+            if (value.segment.attributes.type & SEG_TYPE_CODE) {
+                if (value.segment.attributes.type & SEG_TYPE_READABLE) printf(" R-X"); else printf(" --X");
+                if (value.segment.attributes.type & SEG_TYPE_ACCESSED) printf("A"); else printf("-");
+                if (value.segment.attributes.type & SEG_TYPE_CONFORMING) printf(" conforming");
+            }
+            else {
+                if (value.segment.attributes.type & SEG_TYPE_WRITABLE) printf(" RW-"); else printf(" R--");
+                if (value.segment.attributes.type & SEG_TYPE_ACCESSED) printf("A"); else printf("-");
+                if (value.segment.attributes.type & SEG_TYPE_EXPANDDOWN) printf(" expand-down");
+            }
+        }
+        if (value.segment.attributes.available) printf(" AVL");
+        printf(")");
+    }
 }
 
 void printTable(VirtualProcessor& vp, Reg table) noexcept {
-	CPUMode mode = getCPUMode(vp);
-	RegValue value;
-	vp.RegRead(table, value);
+    CPUMode mode = getCPUMode(vp);
+    RegValue value;
+    vp.RegRead(table, value);
 
-	if (mode == CPUMode::IA32e) {
-		printf("%016" PRIx64 ":%04" PRIx16, value.table.base, value.table.limit);
-	}
-	else {
-		printf("%08" PRIx32 ":%04" PRIx16, (uint32_t)value.table.base, value.table.limit);
-	}
+    if (mode == CPUMode::IA32e) {
+        printf("%016" PRIx64 ":%04" PRIx16, value.table.base, value.table.limit);
+    }
+    else {
+        printf("%08" PRIx32 ":%04" PRIx16, (uint32_t)value.table.base, value.table.limit);
+    }
 }
 
 #define READREG(code, name) bool has_##name; RegValue name; has_##name = vp.RegRead(code, name) == VPOperationStatus::OK;
 void printSegAndTableRegs(VirtualProcessor& vp) noexcept {
-	READREG(Reg::CS, cs);
-	READREG(Reg::SS, ss);
-	READREG(Reg::DS, ds);
-	READREG(Reg::ES, es);
-	READREG(Reg::FS, fs);
-	READREG(Reg::GS, gs);
-	READREG(Reg::TR, tr);
-	READREG(Reg::LDTR, ldtr);
-	READREG(Reg::GDTR, gdtr);
-	READREG(Reg::IDTR, idtr);
-	
-	printf("  CS = "); printSeg(vp, Reg::CS); printf("\n");
-	printf("  SS = "); printSeg(vp, Reg::SS); printf("\n");
-	printf("  DS = "); printSeg(vp, Reg::DS); printf("\n");
-	printf("  ES = "); printSeg(vp, Reg::ES); printf("\n");
-	printf("  FS = "); printSeg(vp, Reg::FS); printf("\n");
-	printf("  GS = "); printSeg(vp, Reg::GS); printf("\n");
-	printf("  TR = "); printSeg(vp, Reg::TR); printf("\n");
-	printf("LDTR = "); printSeg(vp, Reg::LDTR); printf("\n");
-	printf("GDTR =         "); printTable(vp, Reg::GDTR); printf("\n");
-	printf("IDTR =         "); printTable(vp, Reg::IDTR); printf("\n");
+    READREG(Reg::CS, cs);
+    READREG(Reg::SS, ss);
+    READREG(Reg::DS, ds);
+    READREG(Reg::ES, es);
+    READREG(Reg::FS, fs);
+    READREG(Reg::GS, gs);
+    READREG(Reg::TR, tr);
+    READREG(Reg::LDTR, ldtr);
+    READREG(Reg::GDTR, gdtr);
+    READREG(Reg::IDTR, idtr);
+    
+    printf("  CS = "); printSeg(vp, Reg::CS); printf("\n");
+    printf("  SS = "); printSeg(vp, Reg::SS); printf("\n");
+    printf("  DS = "); printSeg(vp, Reg::DS); printf("\n");
+    printf("  ES = "); printSeg(vp, Reg::ES); printf("\n");
+    printf("  FS = "); printSeg(vp, Reg::FS); printf("\n");
+    printf("  GS = "); printSeg(vp, Reg::GS); printf("\n");
+    printf("  TR = "); printSeg(vp, Reg::TR); printf("\n");
+    printf("LDTR = "); printSeg(vp, Reg::LDTR); printf("\n");
+    printf("GDTR =         "); printTable(vp, Reg::GDTR); printf("\n");
+    printf("IDTR =         "); printTable(vp, Reg::IDTR); printf("\n");
 }
 
 void printControlAndDebugRegs(VirtualProcessor& vp) noexcept {
-	READREG(Reg::EFER, efer);
-	READREG(Reg::CR2, cr2); READREG(Reg::CR0, cr0);
-	READREG(Reg::CR3, cr3); READREG(Reg::CR4, cr4);
-	READREG(Reg::DR0, dr0); READREG(Reg::CR8, cr8);
-	READREG(Reg::DR1, dr1); READREG(Reg::XCR0, xcr0);
-	READREG(Reg::DR2, dr2); READREG(Reg::DR6, dr6);
-	READREG(Reg::DR3, dr3); READREG(Reg::DR7, dr7);
+    READREG(Reg::EFER, efer);
+    READREG(Reg::CR2, cr2); READREG(Reg::CR0, cr0);
+    READREG(Reg::CR3, cr3); READREG(Reg::CR4, cr4);
+    READREG(Reg::DR0, dr0); READREG(Reg::CR8, cr8);
+    READREG(Reg::DR1, dr1); READREG(Reg::XCR0, xcr0);
+    READREG(Reg::DR2, dr2); READREG(Reg::DR6, dr6);
+    READREG(Reg::DR3, dr3); READREG(Reg::DR7, dr7);
 
-	CPUMode mode = getCPUMode(vp);
+    CPUMode mode = getCPUMode(vp);
 
-	const auto extendedRegs = BitmaskEnum(vp.GetVirtualMachine().GetPlatform().GetFeatures().extendedControlRegisters);
+    const auto extendedRegs = BitmaskEnum(vp.GetVirtualMachine().GetPlatform().GetFeatures().extendedControlRegisters);
 
-	printf("EFER = %016" PRIx64, efer.u64); printEFERBits(efer.u64); printf("\n");
-	if (mode == CPUMode::IA32e) {
-		printf(" CR2 = %016" PRIx64 "   CR0 = %016" PRIx64, cr2.u64, cr0.u64); printCR0Bits(cr0.u64); printf("\n");
-		printf(" CR3 = %016" PRIx64 "   CR4 = %016" PRIx64, cr3.u64, cr4.u64); printCR4Bits(cr4.u64); printf("\n");
-		printf(" DR0 = %016" PRIx64 "   CR8 = ", dr0.u64);
-		if (extendedRegs.AnyOf(ExtendedControlRegister::CR8) && has_cr8) {
-			printf("%016" PRIx64, cr8.u64); printCR8Bits(cr8.u64); printf("\n");
-		}
-		else {
-			printf("................\n");
-		}
-		printf(" DR1 = %016" PRIx64 "  XCR0 = ", dr1.u64);
-		if (extendedRegs.AnyOf(ExtendedControlRegister::XCR0) && has_xcr0) {
-			printf("%016" PRIx64, xcr0.u64); printXCR0Bits(xcr0.u64); printf("\n");
-		}
-		else {
-			printf("................\n");
-		}
-		printf(" DR2 = %016" PRIx64 "   DR6 = %016" PRIx64, dr2.u64, dr6.u64); printDR6Bits(dr6.u64); printf("\n");
-		printf(" DR3 = %016" PRIx64 "   DR7 = %016" PRIx64, dr3.u64, dr7.u64); printDR7Bits(dr7.u64); printf("\n");
-	}
-	else {
-		printf(" CR2 = %08" PRIx32 "   CR0 = %08" PRIx32, cr2.u32, cr0.u32); printCR0Bits(cr0.u32); printf("\n");
-		printf(" CR3 = %08" PRIx32 "   CR4 = %08" PRIx32, cr3.u32, cr4.u32); printCR4Bits(cr4.u32); printf("\n");
-		printf(" DR0 = %08" PRIx32 "\n", dr0.u32);
-		printf(" DR1 = %08" PRIx32 "  XCR0 = ", dr1.u32);
-		if (extendedRegs.AnyOf(ExtendedControlRegister::XCR0) && has_xcr0) {
-			printf("%016" PRIx64, xcr0.u64); printXCR0Bits(xcr0.u64); printf("\n");
-		}
-		else {
-			printf("................\n");
-		}
-		printf(" DR2 = %08" PRIx32 "   DR6 = %08" PRIx32, dr2.u32, dr6.u32); printDR6Bits(dr6.u32); printf("\n");
-		printf(" DR3 = %08" PRIx32 "   DR7 = %08" PRIx32, dr3.u32, dr7.u32); printDR7Bits(dr7.u32); printf("\n");
-	}
+    printf("EFER = %016" PRIx64, efer.u64); printEFERBits(efer.u64); printf("\n");
+    if (mode == CPUMode::IA32e) {
+        printf(" CR2 = %016" PRIx64 "   CR0 = %016" PRIx64, cr2.u64, cr0.u64); printCR0Bits(cr0.u64); printf("\n");
+        printf(" CR3 = %016" PRIx64 "   CR4 = %016" PRIx64, cr3.u64, cr4.u64); printCR4Bits(cr4.u64); printf("\n");
+        printf(" DR0 = %016" PRIx64 "   CR8 = ", dr0.u64);
+        if (extendedRegs.AnyOf(ExtendedControlRegister::CR8) && has_cr8) {
+            printf("%016" PRIx64, cr8.u64); printCR8Bits(cr8.u64); printf("\n");
+        }
+        else {
+            printf("................\n");
+        }
+        printf(" DR1 = %016" PRIx64 "  XCR0 = ", dr1.u64);
+        if (extendedRegs.AnyOf(ExtendedControlRegister::XCR0) && has_xcr0) {
+            printf("%016" PRIx64, xcr0.u64); printXCR0Bits(xcr0.u64); printf("\n");
+        }
+        else {
+            printf("................\n");
+        }
+        printf(" DR2 = %016" PRIx64 "   DR6 = %016" PRIx64, dr2.u64, dr6.u64); printDR6Bits(dr6.u64); printf("\n");
+        printf(" DR3 = %016" PRIx64 "   DR7 = %016" PRIx64, dr3.u64, dr7.u64); printDR7Bits(dr7.u64); printf("\n");
+    }
+    else {
+        printf(" CR2 = %08" PRIx32 "   CR0 = %08" PRIx32, cr2.u32, cr0.u32); printCR0Bits(cr0.u32); printf("\n");
+        printf(" CR3 = %08" PRIx32 "   CR4 = %08" PRIx32, cr3.u32, cr4.u32); printCR4Bits(cr4.u32); printf("\n");
+        printf(" DR0 = %08" PRIx32 "\n", dr0.u32);
+        printf(" DR1 = %08" PRIx32 "  XCR0 = ", dr1.u32);
+        if (extendedRegs.AnyOf(ExtendedControlRegister::XCR0) && has_xcr0) {
+            printf("%016" PRIx64, xcr0.u64); printXCR0Bits(xcr0.u64); printf("\n");
+        }
+        else {
+            printf("................\n");
+        }
+        printf(" DR2 = %08" PRIx32 "   DR6 = %08" PRIx32, dr2.u32, dr6.u32); printDR6Bits(dr6.u32); printf("\n");
+        printf(" DR3 = %08" PRIx32 "   DR7 = %08" PRIx32, dr3.u32, dr7.u32); printDR7Bits(dr7.u32); printf("\n");
+    }
 }
 
 void printRegs16(VirtualProcessor& vp) noexcept {
-	READREG(Reg::EAX, eax); READREG(Reg::ECX, ecx); READREG(Reg::EDX, edx); READREG(Reg::EBX, ebx);
-	READREG(Reg::ESP, esp); READREG(Reg::EBP, ebp); READREG(Reg::ESI, esi); READREG(Reg::EDI, edi);
-	READREG(Reg::IP, ip);
-	READREG(Reg::EFLAGS, eflags);
+    READREG(Reg::EAX, eax); READREG(Reg::ECX, ecx); READREG(Reg::EDX, edx); READREG(Reg::EBX, ebx);
+    READREG(Reg::ESP, esp); READREG(Reg::EBP, ebp); READREG(Reg::ESI, esi); READREG(Reg::EDI, edi);
+    READREG(Reg::IP, ip);
+    READREG(Reg::EFLAGS, eflags);
 
-	printf(" EAX = %08" PRIx32 "   ECX = %08" PRIx32 "   EDX = %08" PRIx32 "   EBX = %08" PRIx32 "\n", eax.u32, ecx.u32, edx.u32, ebx.u32);
-	printf(" ESP = %08" PRIx32 "   EBP = %08" PRIx32 "   ESI = %08" PRIx32 "   EDI = %08" PRIx32 "\n", esp.u32, ebp.u32, esi.u32, edi.u32);
-	printf("  IP = %04" PRIx16 "\n", ip.u16);
-	printSegAndTableRegs(vp);
-	printf("EFLAGS = %08" PRIx32, eflags.u32); printRFLAGSBits(eflags.u32); printf("\n");
-	printControlAndDebugRegs(vp);
+    printf(" EAX = %08" PRIx32 "   ECX = %08" PRIx32 "   EDX = %08" PRIx32 "   EBX = %08" PRIx32 "\n", eax.u32, ecx.u32, edx.u32, ebx.u32);
+    printf(" ESP = %08" PRIx32 "   EBP = %08" PRIx32 "   ESI = %08" PRIx32 "   EDI = %08" PRIx32 "\n", esp.u32, ebp.u32, esi.u32, edi.u32);
+    printf("  IP = %04" PRIx16 "\n", ip.u16);
+    printSegAndTableRegs(vp);
+    printf("EFLAGS = %08" PRIx32, eflags.u32); printRFLAGSBits(eflags.u32); printf("\n");
+    printControlAndDebugRegs(vp);
 }
 
 void printRegs32(VirtualProcessor& vp) noexcept {
@@ -521,9 +521,9 @@ void printRegs32(VirtualProcessor& vp) noexcept {
     printf(" EAX = %08" PRIx32 "   ECX = %08" PRIx32 "   EDX = %08" PRIx32 "   EBX = %08" PRIx32 "\n", eax.u32, ecx.u32, edx.u32, ebx.u32);
     printf(" ESP = %08" PRIx32 "   EBP = %08" PRIx32 "   ESI = %08" PRIx32 "   EDI = %08" PRIx32 "\n", esp.u32, ebp.u32, esi.u32, edi.u32);
     printf(" EIP = %08" PRIx32 "\n", eip.u32);
-	printSegAndTableRegs(vp);
+    printSegAndTableRegs(vp);
     printf("EFLAGS = %08" PRIx32, eflags.u32); printRFLAGSBits(eflags.u32); printf("\n");
-	printControlAndDebugRegs(vp);
+    printControlAndDebugRegs(vp);
 }
 
 void printRegs64(VirtualProcessor& vp) noexcept {
@@ -539,9 +539,9 @@ void printRegs64(VirtualProcessor& vp) noexcept {
     printf("  R8 = %016" PRIx64 "    R9 = %016" PRIx64 "   R10 = %016" PRIx64 "   R11 = %016" PRIx64 "\n", r8.u64, r9.u64, r10.u64, r11.u64);
     printf(" R12 = %016" PRIx64 "   R13 = %016" PRIx64 "   R14 = %016" PRIx64 "   R15 = %016" PRIx64 "\n", r12.u64, r13.u64, r14.u64, r15.u64);
     printf(" RIP = %016" PRIx64 "\n", rip.u64);
-	printSegAndTableRegs(vp);
+    printSegAndTableRegs(vp);
     printf("RFLAGS = %016" PRIx64, rflags.u64); printRFLAGSBits(rflags.u64); printf("\n");
-	printControlAndDebugRegs(vp);
+    printControlAndDebugRegs(vp);
 }
 #undef READREG
 

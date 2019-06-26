@@ -413,19 +413,19 @@ int main() {
 
     Platform& platform = PlatformFactories[platformIndex]();
 
-	// Print out the host's features
-	printf("Host features:\n");
-	printf("  Maximum guest physical address: 0x%" PRIx64 "\n", HostInfo.gpa.maxAddress);
-	printf("  Floating point extensions:");
-	printFPExts(HostInfo.floatingPointExtensions);
-	printf("\n\n");
+    // Print out the host's features
+    printf("Host features:\n");
+    printf("  Maximum guest physical address: 0x%" PRIx64 "\n", HostInfo.gpa.maxAddress);
+    printf("  Floating point extensions:");
+    printFPExts(HostInfo.floatingPointExtensions);
+    printf("\n\n");
 
-	// Print out the platform's features
+    // Print out the platform's features
     printf("Hypervisor features:\n");
     auto& features = platform.GetFeatures();
     printf("  Maximum number of VCPUs: %u per VM, %u global\n", features.maxProcessorsPerVM, features.maxProcessorsGlobal);
-	printf("  Maximum guest physical address: 0x%" PRIx64 "\n", features.guestPhysicalAddress.maxAddress);
-	printf("  Unrestricted guest: %s\n", (features.unrestrictedGuest) ? "supported" : "unsuported");
+    printf("  Maximum guest physical address: 0x%" PRIx64 "\n", features.guestPhysicalAddress.maxAddress);
+    printf("  Unrestricted guest: %s\n", (features.unrestrictedGuest) ? "supported" : "unsuported");
     printf("  Extended Page Tables: %s\n", (features.extendedPageTables) ? "supported" : "unsuported");
     printf("  Guest debugging: %s\n", (features.guestDebugging) ? "available" : "unavailable");
     printf("  Memory protection: %s\n", (features.guestMemoryProtection) ? "available" : "unavailable");

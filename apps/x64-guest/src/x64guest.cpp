@@ -283,9 +283,9 @@ int main(int argc, char* argv[]) {
 
     // Map the newly added physical page to linear address 0x100000000
     // PML4E for that virtual address already exists
-	*(uint64_t*)&ram[0x1020] = 0x5023;  // PDPTE -> PDE at 0x5000
-	*(uint64_t*)&ram[0x5000] = 0x6023;  // PDE -> PTE at 0x6000
-	*(uint64_t*)&ram[0x6000] = (moreRamBase & ~0xFFF) | 0x23;   // PTE -> physical address
+    *(uint64_t*)&ram[0x1020] = 0x5023;  // PDPTE -> PDE at 0x5000
+    *(uint64_t*)&ram[0x5000] = 0x6023;  // PDE -> PTE at 0x6000
+    *(uint64_t*)&ram[0x6000] = (moreRamBase & ~0xFFF) | 0x23;   // PTE -> physical address
 
     // Display linear-to-physical address translation of the new page
     printAddressTranslation(vp, 0x100000000);
@@ -330,7 +330,7 @@ int main(int argc, char* argv[]) {
     printf("\n");
 
     // Update page mapping to point to the second page of the newly allocated RAM
-	*(uint64_t*)&ram[0x6000] = ((moreRamBase & ~0xFFF) + 0x1000) | 0x23;   // PTE -> physical address
+    *(uint64_t*)&ram[0x6000] = ((moreRamBase & ~0xFFF) + 0x1000) | 0x23;   // PTE -> physical address
 
     // Display new address translation
     printf("Page mapping updated:\n");
@@ -591,8 +591,8 @@ int main(int argc, char* argv[]) {
 
     // ----- End ------------------------------------------------------------------------------------------------------
 
-	printf("Final VCPU state:\n");
-	printRegs(vp);
+    printf("Final VCPU state:\n");
+    printRegs(vp);
     printSTRegs(vp);
     printMMRegs(vp, MMBits::_16);
     printMXCSRRegs(vp);
@@ -601,7 +601,7 @@ int main(int argc, char* argv[]) {
     printZMMRegs(vp, MMBits::_64);
     printf("\n");
 
-	printf("Linear memory address translations:\n");
+    printf("Linear memory address translations:\n");
     printAddressTranslation(vp, 0x00000000);
     printAddressTranslation(vp, 0x00010000);
     printAddressTranslation(vp, 0xffff0000);
@@ -611,19 +611,19 @@ int main(int argc, char* argv[]) {
 
     {
         uint64_t stackVal;
-		if (vp.LMemRead(0x200000 - 8, sizeof(uint64_t), &stackVal)) {
-			printf("Value written to stack: 0x%016" PRIx64 "\n", stackVal);
-		}
+        if (vp.LMemRead(0x200000 - 8, sizeof(uint64_t), &stackVal)) {
+            printf("Value written to stack: 0x%016" PRIx64 "\n", stackVal);
+        }
         
         RegValue gdtr, idtr;
         vp.RegRead(Reg::GDTR, gdtr);
         vp.RegRead(Reg::IDTR, idtr);
 
         GDTEntry gdtCode, gdtData;
-		vp.GetGDTEntry(0x0008, gdtCode);
-		vp.GetGDTEntry(0x0010, gdtData);
-		printf("Code GDT: base=0x%08x, limit=0x%08x, access=0x%02x, flags=0x%x\n", gdtCode.gdt.GetBase(), gdtCode.gdt.GetLimit(), gdtCode.gdt.data.access.u8, gdtCode.gdt.data.flags);
-		printf("Data GDT: base=0x%08x, limit=0x%08x, access=0x%02x, flags=0x%x\n", gdtData.gdt.GetBase(), gdtData.gdt.GetLimit(), gdtData.gdt.data.access.u8, gdtData.gdt.data.flags);
+        vp.GetGDTEntry(0x0008, gdtCode);
+        vp.GetGDTEntry(0x0010, gdtData);
+        printf("Code GDT: base=0x%08x, limit=0x%08x, access=0x%02x, flags=0x%x\n", gdtCode.gdt.GetBase(), gdtCode.gdt.GetLimit(), gdtCode.gdt.data.access.u8, gdtCode.gdt.data.flags);
+        printf("Data GDT: base=0x%08x, limit=0x%08x, access=0x%02x, flags=0x%x\n", gdtData.gdt.GetBase(), gdtData.gdt.GetLimit(), gdtData.gdt.data.access.u8, gdtData.gdt.data.flags);
 
         printf("\n");
     }
