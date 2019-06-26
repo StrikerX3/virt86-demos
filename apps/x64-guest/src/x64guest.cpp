@@ -375,6 +375,13 @@ int main(int argc, char* argv[]) {
 
     printf("\n");
 
+    // Define some helper functions for tests
+    static constexpr float float_epsilon = 1e-5f;
+    auto feq = [](float x, float y) -> bool { return fabs(x - y) <= float_epsilon; };
+
+    static constexpr double double_epsilon = 1e-9f;
+    auto deq = [](double x, double y) -> bool { return fabs(x - y) <= double_epsilon; };
+
     // ----- MMX ------------------------------------------------------------------------------------------------------
 
     // Run until HLT is reached
@@ -467,9 +474,6 @@ int main(int argc, char* argv[]) {
         float memValue[4];
         vp.LMemRead(rsi.u64, sizeof(memValue), &memValue);
 
-        static constexpr float epsilon = 1e-5f;
-        auto feq = [](float x, float y) -> bool { return fabs(x - y) <= epsilon; };
-
         // Reinterpret RAX as if it were the lowest 64 bits of XMM0
         if (feq(rax.xmm.f32[0], 30.8) && feq(rax.xmm.f32[1], 51.48)) printf("RAX contains the correct result\n");
         if (feq(memValue[0], 30.8) && feq(memValue[1], 51.48) && feq(memValue[2], 77.0) && feq(memValue[3], 107.36)) printf("Memory contains the correct result\n");
@@ -521,13 +525,10 @@ int main(int argc, char* argv[]) {
         double memValue[4];
         vp.LMemRead(rsi.u64, sizeof(memValue), &memValue);
 
-        static constexpr double epsilon = 1e-9f;
-        auto feq = [](double x, double y) -> bool { return fabs(x - y) <= epsilon; };
-
         // Reinterpret RAX as if it were the lowest 64 bits of XMM0
-        if (feq(rax.xmm.f64[0], 11.22)) printf("RAX contains the correct result\n");
-        if (feq(memValue[0], 11.22) && feq(memValue[1], 24.64)) printf("Memory contains the correct result\n");
-        if (feq(xmm0.xmm.f64[0], 11.22) && feq(xmm0.xmm.f64[1], 24.64)) printf("XMM0 contains the correct result\n");
+        if (deq(rax.xmm.f64[0], 11.22)) printf("RAX contains the correct result\n");
+        if (deq(memValue[0], 11.22) && deq(memValue[1], 24.64)) printf("Memory contains the correct result\n");
+        if (deq(xmm0.xmm.f64[0], 11.22) && deq(xmm0.xmm.f64[1], 24.64)) printf("XMM0 contains the correct result\n");
         printf("SSE2 test complete\n");
     }
 
@@ -575,13 +576,10 @@ int main(int argc, char* argv[]) {
         double memValue[4];
         vp.LMemRead(rsi.u64, sizeof(memValue), &memValue);
 
-        static constexpr double epsilon = 1e-9f;
-        auto feq = [](double x, double y) -> bool { return fabs(x - y) <= epsilon; };
-
         // Reinterpret RAX as if it were the lowest 64 bits of XMM0
-        if (feq(rax.xmm.f64[0], 4.0)) printf("RAX contains the correct result\n");
-        if (feq(memValue[0], 4.0) && feq(memValue[1], 2.0)) printf("Memory contains the correct result\n");
-        if (feq(xmm0.xmm.f64[0], 4.0) && feq(xmm0.xmm.f64[1], 2.0)) printf("XMM0 contains the correct result\n");
+        if (deq(rax.xmm.f64[0], 4.0)) printf("RAX contains the correct result\n");
+        if (deq(memValue[0], 4.0) && deq(memValue[1], 2.0)) printf("Memory contains the correct result\n");
+        if (deq(xmm0.xmm.f64[0], 4.0) && deq(xmm0.xmm.f64[1], 2.0)) printf("XMM0 contains the correct result\n");
         printf("SSE3 test complete\n");
     }
 
@@ -626,10 +624,10 @@ int main(int argc, char* argv[]) {
         vp.RegRead(Reg::RSI, rsi);   // contains address of result in memory
         vp.RegRead(Reg::XMM1, xmm1);
 
-        int memValue[4];
+        int32_t memValue[4];
         vp.LMemRead(rsi.u64, sizeof(memValue), &memValue);
 
-        // Reinterpret RAX as if it were the lowest 64 bits of XMM0
+        // Reinterpret RAX as if it were the lowest 64 bits of XMM1
         if (rax.xmm.i32[0] == -3087 && rax.xmm.i32[1] == 3087) printf("RAX contains the correct result\n");
         if (memValue[0] == -3087 && memValue[1] == 3087 && memValue[2] == 5555 && memValue[3] == 5555) printf("Memory contains the correct result\n");
         if (xmm1.xmm.i32[0] == -3087 && xmm1.xmm.i32[1] == 3087 && xmm1.xmm.i32[2] == 5555 && xmm1.xmm.i32[3] == 5555) printf("XMM1 contains the correct result\n");
@@ -638,6 +636,108 @@ int main(int argc, char* argv[]) {
 
     printf("\n");
 
+    // ----- SSE4 -----------------------------------------------------------------------------------------------------
+
+    // Run until HLT is reached
+    running = true;
+    while (running) {
+        auto execStatus = vp.Run();
+        if (execStatus != VPExecutionStatus::OK) {
+            printf("Virtual CPU execution failed\n");
+            break;
+        }
+
+        printRegs(vp);
+        printXMMRegs(vp, XMMFormat::I64);
+        printf("\n");
+
+        auto& exitInfo = vp.GetVMExitInfo();
+        switch (exitInfo.reason) {
+        case VMExitReason::HLT:
+            printf("HLT reached\n");
+            running = false;
+            break;
+        case VMExitReason::Shutdown:
+            printf("VCPU shutting down\n");
+            running = false;
+            break;
+        case VMExitReason::Error:
+            printf("VCPU execution failed\n");
+            running = false;
+            break;
+        }
+    }
+
+    // Check result
+    {
+        RegValue rax, rsi, xmm2;
+        vp.RegRead(Reg::RAX, rax);
+        vp.RegRead(Reg::RSI, rsi);   // contains address of result in memory
+        vp.RegRead(Reg::XMM2, xmm2);
+
+        int64_t memValue[2];
+        vp.LMemRead(rsi.u64, sizeof(memValue), &memValue);
+
+        if (rax.u64 == 0) printf("RAX contains the correct result\n");
+        if (memValue[0] == 0 && memValue[1] == -1) printf("Memory contains the correct result\n");
+        if (xmm2.xmm.i64[0] == 0 && xmm2.xmm.i64[1] == -1) printf("XMM2 contains the correct result\n");
+        printf("SSE4 test complete\n");
+    }
+
+    printf("\n");
+
+    // ----- AVX ------------------------------------------------------------------------------------------------------
+
+    // Run until HLT is reached
+    running = true;
+    while (running) {
+        auto execStatus = vp.Run();
+        if (execStatus != VPExecutionStatus::OK) {
+            printf("Virtual CPU execution failed\n");
+            break;
+        }
+
+        printRegs(vp);
+        printXMMRegs(vp, XMMFormat::F32);
+        printf("\n");
+
+        auto& exitInfo = vp.GetVMExitInfo();
+        switch (exitInfo.reason) {
+        case VMExitReason::HLT:
+            printf("HLT reached\n");
+            running = false;
+            break;
+        case VMExitReason::Shutdown:
+            printf("VCPU shutting down\n");
+            running = false;
+            break;
+        case VMExitReason::Error:
+            printf("VCPU execution failed\n");
+            running = false;
+            break;
+        }
+    }
+
+    // Check result
+    {
+        RegValue rax, rsi, xmm3;
+        vp.RegRead(Reg::RAX, rax);
+        vp.RegRead(Reg::RSI, rsi);   // contains address of result in memory
+        vp.RegRead(Reg::XMM3, xmm3);  // TODO: should read YMM3, but no hypervisors support that so far
+
+        float memValue[8];
+        vp.LMemRead(rsi.u64, sizeof(memValue), &memValue);
+
+        // Reinterpret RAX as if it were the lowest 64 bits of XMM3
+        if (feq(rax.xmm.f32[0], 10.0) && feq(rax.xmm.f32[1], 15.0)) printf("RAX contains the correct result\n");
+        if (feq(memValue[0], 10.0) && feq(memValue[1], 15.0) && feq(memValue[2], 20.0) && feq(memValue[3], 25.0)
+            && feq(memValue[4], 30.0) && feq(memValue[5], 35.0) && feq(memValue[6], 40.0) && feq(memValue[7], 45.0)) printf("Memory contains the correct result\n");
+        if (feq(xmm3.xmm.f32[0], 10.0) && feq(xmm3.xmm.f32[1], 15.0) && feq(xmm3.xmm.f32[2], 20.0) && feq(xmm3.xmm.f32[3], 25.0)) printf("XMM3 contains the correct result\n");
+        printf("AVX test complete\n");
+    }
+
+    printf("\n");
+    
     // TODO: continue implementing test verifications
 
     // ----- End ------------------------------------------------------------------------------------------------------

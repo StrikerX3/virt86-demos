@@ -108,7 +108,19 @@ SSSE3.Test:
     hlt
 
 SSE4.Test:   ; Includes SSE4.1 and SSE4.2
-    ; TODO: write test
+    movupd xmm0, [sse4.v1]  ; Load first vector into xmm0
+    movupd xmm1, [sse4.v2]  ; Load second vector into xmm1
+    movupd xmm2, [sse4.v2]  ; Load third vector into xmm2
+
+    pmuldq xmm0, xmm1       ; [SSE4.1] Multiply first and third signed dwords xmm0
+                            ; with first and third signed dwords in xmm1, store qword results in xmm0
+    pcmpgtq xmm2, xmm0      ; [SSE4.2] Compare qwords in xmm0 and xmm2 for greater than.
+                            ; If true, sets corresponding element in xmm0 to all 1s, otherwise all 0s
+
+    movupd [sse4.r], xmm2   ; Write result to memory
+    movq rax, xmm2          ; Copy low 64 bits of result to RAX
+    lea rsi, [sse4.r]       ; Put address of result into RSI
+
     hlt                     ; Let the host check the result
 
 AVX.Enable:
@@ -176,7 +188,10 @@ ALIGN 16
     ssse3.r: resd 4
 
     ; Data for SSE4 test
-    ; TODO
+    sse4.v1: dd 0, -30, 0, 60
+    sse4.v2: dd 0,  -6, 0,  2
+    sse4.v3: dq 120, 120
+    sse4.r:  resd 4
 
     ; Data for AVX test
     avx.v1: dd 1.5, 2.5, 3.5, 4.5, 5.5, 6.5, 7.5, 8.5
