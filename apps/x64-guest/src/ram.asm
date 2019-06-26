@@ -70,12 +70,11 @@ SSE2.Test:
     ; TODO: write test
     hlt                     ; Let the host check the result
 
-SSE3.Test:
+SSE3.Test:   ; Includes SSSE3
     ; TODO: write test
     hlt                     ; Let the host check the result
 
-; Includes SSSE3, SSE4.1 and SSE4.2
-SSE4.Test:
+SSE4.Test:   ; Includes SSE4.1 and SSE4.2
     ; TODO: write test
     hlt                     ; Let the host check the result
 

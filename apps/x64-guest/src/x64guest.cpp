@@ -515,7 +515,7 @@ int main(int argc, char* argv[]) {
 
     printf("\n");
 
-    // TODO: continue implementing tests
+    // TODO: continue implementing test verifications
 
     // ----- End ------------------------------------------------------------------------------------------------------
 
