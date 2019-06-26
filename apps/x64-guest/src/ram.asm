@@ -148,7 +148,16 @@ AVX.Test:
     hlt                     ; Let the host check the result
 
 FMA3.Test:
-    ; TODO: write test
+    vmovups ymm0, [fma3.v1] ; Load v1 into ymm0
+    vmovups ymm1, [fma3.v2] ; Load v2 into ymm1
+    vmovups ymm2, [fma3.v3] ; Load v3 into ymm2
+
+    vfmadd132pd ymm0, ymm1, ymm2  ; ymm0 = ymm0 * ymm2 + ymm1
+
+    vmovups [avx.r], ymm0   ; Write result to memory
+    vmovq rax, xmm0         ; Copy low 64 bits of result to RAX
+    lea rsi, [avx.r]        ; Put address of result into RSI
+
     hlt                     ; Let the host check the result
 
 AVX2.Test:
@@ -200,7 +209,10 @@ ALIGN 16
     avx.r:  resd 8
 
     ; Data for FMA3 test
-    ; TODO
+    fma3.v1: dq 0.5, 1.0, 1.5, 2.0
+    fma3.v2: dq 2.0, 2.5, 3.0, 3.5
+    fma3.v3: dq 4.0, 3.0, 2.0, 1.0
+    fma3.r:  resq 4
 
     ; Data for AVX2 test
     ; TODO

@@ -737,7 +737,59 @@ int main(int argc, char* argv[]) {
     }
 
     printf("\n");
-    
+
+
+    // ----- FMA3 -----------------------------------------------------------------------------------------------------
+
+    // Run until HLT is reached
+    running = true;
+    while (running) {
+        auto execStatus = vp.Run();
+        if (execStatus != VPExecutionStatus::OK) {
+            printf("Virtual CPU execution failed\n");
+            break;
+        }
+
+        printRegs(vp);
+        printXMMRegs(vp, XMMFormat::F32);
+        printf("\n");
+
+        auto& exitInfo = vp.GetVMExitInfo();
+        switch (exitInfo.reason) {
+        case VMExitReason::HLT:
+            printf("HLT reached\n");
+            running = false;
+            break;
+        case VMExitReason::Shutdown:
+            printf("VCPU shutting down\n");
+            running = false;
+            break;
+        case VMExitReason::Error:
+            printf("VCPU execution failed\n");
+            running = false;
+            break;
+        }
+    }
+
+    // Check result
+    {
+        RegValue rax, rsi, xmm0;
+        vp.RegRead(Reg::RAX, rax);
+        vp.RegRead(Reg::RSI, rsi);   // contains address of result in memory
+        vp.RegRead(Reg::XMM0, xmm0);  // TODO: should read YMM0, but no hypervisors support that so far
+
+        double memValue[4];
+        vp.LMemRead(rsi.u64, sizeof(memValue), &memValue);
+
+        // Reinterpret RAX as if it were the lowest 64 bits of XMM0
+        if (deq(rax.xmm.f64[0], 4.0)) printf("RAX contains the correct result\n");
+        if (deq(memValue[0], 4.0) && deq(memValue[1], 5.5) && deq(memValue[2], 6.0) && deq(memValue[3], 5.5)) printf("Memory contains the correct result\n");
+        if (deq(xmm0.xmm.f64[0], 4.0) && deq(xmm0.xmm.f64[1], 5.5)) printf("XMM0 contains the correct result\n");
+        printf("FMA3 test complete\n");
+    }
+
+    printf("\n");
+
     // TODO: continue implementing test verifications
 
     // ----- End ------------------------------------------------------------------------------------------------------
