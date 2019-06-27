@@ -777,6 +777,33 @@ void printZMMRegs(VirtualProcessor& vp, XMMFormat format) noexcept {
     }
 }
 
+void printFXSAVE(FXSAVEArea& fxsave, bool printSSE) noexcept {
+    // TODO: print basic state and ST/MM regs
+
+    if (printSSE) {
+        // TODO: print XMM regs
+    }
+}
+
+void printXSAVE(VirtualProcessor& vp, uint64_t xsaveAddress, uint32_t bases[16], uint32_t sizes[16], uint32_t alignments) noexcept {
+    XSAVEArea xsave;
+    if (!vp.LMemRead(xsaveAddress, sizeof(xsave), &xsave)) {
+        printf("Could not read XSAVE from memory at 0x%" PRIx64, xsaveAddress);
+        return;
+    }
+
+    if (xsave.header.xcomp_bv.data.format) {
+        printf("XSAVE is in compacted format\n\n");
+    }
+    else {
+        printf("XSAVE is in standard format\n\n");
+    }
+
+    printFXSAVE(xsave.fxsave, false);
+    
+    // TODO: print XSAVE data structure and its components
+}
+
 void printDirtyBitmap(VirtualMachine& vm, uint64_t baseAddress, uint64_t numPages) noexcept {
     if (!vm.GetPlatform().GetFeatures().dirtyPageTracking) {
         printf("Dirty page tracking not supported by the hypervisor\n\n");

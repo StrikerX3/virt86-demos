@@ -390,7 +390,7 @@ int main(int argc, char* argv[]) {
         printf("\n");
     }
     else {
-        printf("MMX not supported by guest; skipping test\n");
+        printf("MMX not supported by guest; skipping test\n\n");
     }
 
     // ----- SSE ------------------------------------------------------------------------------------------------------
@@ -422,7 +422,7 @@ int main(int argc, char* argv[]) {
         printf("\n");
     }
     else {
-        printf("SSE not supported by guest; skipping test\n");
+        printf("SSE not supported by guest; skipping test\n\n");
     }
 
     // ----- SSE2 -----------------------------------------------------------------------------------------------------
@@ -454,7 +454,7 @@ int main(int argc, char* argv[]) {
         printf("\n");
     }
     else {
-        printf("SSE2 not supported by guest; skipping test\n");
+        printf("SSE2 not supported by guest; skipping test\n\n");
     }
 
     // ----- SSE3 -----------------------------------------------------------------------------------------------------
@@ -486,7 +486,7 @@ int main(int argc, char* argv[]) {
         printf("\n");
     }
     else {
-        printf("SSE3 not supported by guest; skipping test\n");
+        printf("SSE3 not supported by guest; skipping test\n\n");
     }
 
     // ----- SSSE3 ----------------------------------------------------------------------------------------------------
@@ -518,7 +518,7 @@ int main(int argc, char* argv[]) {
         printf("\n");
     }
     else {
-        printf("SSSE3 not supported by guest; skipping test\n");
+        printf("SSSE3 not supported by guest; skipping test\n\n");
     }
 
     // ----- SSE4 -----------------------------------------------------------------------------------------------------
@@ -549,32 +549,7 @@ int main(int argc, char* argv[]) {
         printf("\n");
     }
     else {
-        printf("SSE4 not supported by guest; skipping test\n");
-    }
-
-    // ----- XSAVE ----------------------------------------------------------------------------------------------------
-
-    if (testBits & FPTEST_XSAVE) {
-        // Run next block
-        runToHLT(vp);
-
-        // Check result
-        {
-            RegValue rsi;
-            vp.RegRead(Reg::RSI, rsi);   // contains address of XSAVE data in memory
-
-            uint8_t memValue[1024];
-            vp.LMemRead(rsi.u64, sizeof(memValue), &memValue);
-
-            // TODO: read XSAVE data structure
-            // TODO: figure out which features are available in the XSAVE structure
-            printf("XSAVE test complete\n");
-        }
-
-        printf("\n");
-    }
-    else {
-        printf("XSAVE not supported by guest; skipping test\n");
+        printf("SSE4 not supported by guest; skipping test\n\n");
     }
 
     // ----- AVX ------------------------------------------------------------------------------------------------------
@@ -607,7 +582,7 @@ int main(int argc, char* argv[]) {
         printf("\n");
     }
     else {
-        printf("AVX not supported by guest; skipping test\n");
+        printf("AVX not supported by guest; skipping test\n\n");
     }
 
     // ----- FMA3 -----------------------------------------------------------------------------------------------------
@@ -639,7 +614,7 @@ int main(int argc, char* argv[]) {
         printf("\n");
     }
     else {
-        printf("FMA3 not supported by guest; skipping test\n");
+        printf("FMA3 not supported by guest; skipping test\n\n");
     }
 
     // ----- AVX2 -----------------------------------------------------------------------------------------------------
@@ -670,32 +645,38 @@ int main(int argc, char* argv[]) {
         printf("\n");
     }
     else {
-        printf("AVX2 not supported by guest; skipping test\n");
+        printf("AVX2 not supported by guest; skipping test\n\n");
     }
 
-    // ----- XSAVE + AVX ----------------------------------------------------------------------------------------------
+    // ----- XSAVE ----------------------------------------------------------------------------------------------------
 
-    if (testBits & (FPTEST_XSAVE | FPTEST_AVX)) {
+    if (testBits & FPTEST_XSAVE) {
         // Run next block
         runToHLT(vp);
+        printf("\n");
 
         // Check result
         {
-            RegValue rsi;
+            RegValue rsi, r12, r13, r14;
             vp.RegRead(Reg::RSI, rsi);   // contains address of XSAVE data in memory
+            vp.RegRead(Reg::R12, r12);   // contains address of XSAVE component base addresses in memory
+            vp.RegRead(Reg::R13, r13);   // contains address of XSAVE component sizes in memory
+            vp.RegRead(Reg::R14, r14);   // contains address of XSAVE component alignment bits in memory
 
-            uint8_t memValue[1024];
-            vp.LMemRead(rsi.u64, sizeof(memValue), &memValue);
+            uint32_t bases[16], sizes[16], alignments;
+            vp.LMemRead(r12.u64, sizeof(bases), bases);
+            vp.LMemRead(r13.u64, sizeof(sizes), sizes);
+            vp.LMemRead(r14.u64, sizeof(alignments), &alignments);
 
-            // TODO: read XSAVE data structure
-            // TODO: figure out which features are available in the XSAVE structure
+            printXSAVE(vp, rsi.u64, bases, sizes, alignments);
+            printf("\n");
             printf("XSAVE test complete\n");
         }
 
         printf("\n");
     }
     else {
-        printf("XSAVE and AVX not supported by guest; skipping test\n");
+        printf("XSAVE and AVX not supported by guest; skipping test\n\n");
     }
 
     // ----- End ------------------------------------------------------------------------------------------------------

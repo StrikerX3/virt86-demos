@@ -49,5 +49,7 @@ void printMXCSRRegs(virt86::VirtualProcessor& vp) noexcept;
 void printXMMRegs(virt86::VirtualProcessor& vp, XMMFormat format) noexcept;
 void printYMMRegs(virt86::VirtualProcessor& vp, XMMFormat format) noexcept;
 void printZMMRegs(virt86::VirtualProcessor& vp, XMMFormat format) noexcept;
+void printFXSAVE(virt86::FXSAVEArea& fxsave, bool printSSE) noexcept;
+void printXSAVE(virt86::VirtualProcessor& vp, uint64_t xsaveAddress, uint32_t bases[16], uint32_t sizes[16], uint32_t alignments) noexcept;
 void printDirtyBitmap(virt86::VirtualMachine& vm, uint64_t baseAddress, uint64_t numPages) noexcept;
 void printAddressTranslation(virt86::VirtualProcessor& vp, const uint64_t addr) noexcept;

@@ -79,6 +79,7 @@ FPTests.Init:
     or r15, FPTEST_FMA3
 
     mov eax, 7              ; Read CPUID page 7
+    xor ecx, ecx
     cpuid
 
     test ebx, (1 << 5)      ; AVX2 bit
@@ -202,7 +203,7 @@ SSE4.Test:   ; Includes SSE4.1 and SSE4.2
     hlt                     ; Let the host check the result
 
 AVX.Enable:
-    test r15, FPTEST_XSAVE  ; Check if XSAVE test is enabled
+    test r15, FPTEST_AVX    ; Check if AVX test is enabled
     jz FPTests.End          ; Leave tests if disabled
 
     mov rax, cr4
@@ -212,15 +213,6 @@ AVX.Enable:
     xgetbv                  ; Load XCR0 register
     or eax, 7               ; Set AVX, SSE, X87 bits
     xsetbv                  ; Save back to XCR0
-
-XSAVE.Test:
-    mov rdx, 0xFFFFFFFFFFFFFFFF  ; Enable all XSAVE features
-    mov rax, 0xFFFFFFFFFFFFFFFF  ; ... on RDX and RAX
-    xsave [xsavearea]       ; XSAVE to reserved memory area
-
-    lea rsi, [xsavearea]    ; Put address of XSAVE area into RSI
-
-    hlt                     ; Let the host check the result
 
 AVX.Test:
     test r15, FPTEST_AVX    ; Check if AVX test is enabled
@@ -270,12 +262,75 @@ AVX2.Test:
 
     hlt                     ; Let the host check the result
 
-XSAVE_AVX.Test:
+XSAVE.Test:
+    test r15, FPTEST_XSAVE  ; Check if XSAVE test is enabled
+    jz FPTests.End          ; Leave tests if disabled
+
     mov rdx, 0xFFFFFFFFFFFFFFFF  ; Enable all XSAVE features
     mov rax, 0xFFFFFFFFFFFFFFFF  ; ... on RDX and RAX
     xsave [xsavearea]       ; XSAVE to reserved memory area
 
+    mov r8, [xsavearea + 512] ; Read XSTATE_BV
+    mov r9, [xsavearea + 520] ; Read XCOMP_BV
+    
+    mov rdx, 1 << 63
+    test r9, rdx
+    jz XSAVE.Format.Standard ; Check which format is in use
+    mov r11, r9             ; Compacted format in use
+    jmp XSAVE.Format.Init
+XSAVE.Format.Standard:
+    mov r11, r8             ; Standard format in use
+
+XSAVE.Format.Init:
+    xor rax, rax
+
+    mov rcx, 16
+    lea rdi, [xsavebases]
+    rep stosq               ; Clear base addresses
+
+    mov rcx, 16
+    lea rdi, [xsavesizes]
+    rep stosq               ; Clear sizes
+
+    mov [xsavealign], rax   ; Clear alignment bits
+
+    mov rdx, 1 << 12        ; Initialize RDX with our bit mask
+    mov rcx, 11             ; Initialize loop counter
+    xor rax, rax
+
+XSAVE.Format.Loop:
+    mov r10, rcx            ; Save RCX
+    test rdx, r11           ; Check if specified bit is set
+    jz XSAVE.Format.Zero    ; Set to zero if clear
+
+    mov rax, 0xD            ; Read CPUID page 0xD for the component...
+    add rcx, 1              ; ... RCX + 1 (RCX=0 is main, RCX=1 is reserved, RCX=2..62 correspond to XCR0.n, RCX=63 is reserved)
+    cpuid                   ; ... in order to retrieve their base addresses, sizes and alignments
+    jmp XSAVE.Format.Write  ; Don't zero out values
+
+XSAVE.Format.Zero:
+    xor rbx, rbx            ; Zero out base address
+    xor rax, rax            ; Zero out size
+    xor rcx, rcx            ; Zero out alignment bit
+
+XSAVE.Format.Write:
+    mov [xsavebases + rcx * 8], rbx  ; RBX contains the base address
+    mov [xsavesizes + rcx * 8], rax  ; RAX contains the size
+    test rcx, 2                      ; RCX contains the alignment bit
+    jz XSAVE.Format.Continue ; If the alignment bit is set
+    or [xsavealign], rdx    ; ... set the corresponding bit in the destination
+
+XSAVE.Format.Continue:
+    mov rcx, r10            ; Restore RCX
+    shr rdx, 1              ; Shift test bit
+    loop XSAVE.Format.Loop  ; Repeat until all components have been examined
+
     lea rsi, [xsavearea]    ; Put address of XSAVE area into RSI
+    lea r12, [xsavebases]   ; Put address of base addresses into R12
+    lea r13, [xsavesizes]   ; Put address of sizes into R13
+    lea r14, [xsavealign]   ; Put address of alignment bits into R14
+                            ; R8 contains XSTATE_BV
+                            ; R9 contains XCOMP_BV
 
     hlt                     ; Let the host check the result
 
@@ -344,5 +399,8 @@ ALIGN 16
     avx2.r: resq 4
 
     ; XSAVE state area
-ALIGN 64
-    xsavearea: resb 1024
+ALIGN 4096
+    xsavearea: resb 4096        ; XSAVE data area
+    xsavebases: times 16 dd 0   ; Base offsets of each XSAVE component
+    xsavesizes: times 16 dd 0   ; Sizes of each XSAVE component
+    xsavealign: dd 0            ; Alignment bits of each XSAVE component
