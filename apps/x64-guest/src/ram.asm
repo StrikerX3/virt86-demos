@@ -40,6 +40,7 @@ FPTests.Init:
     xor r15, r15            ; R15 will contain bits indicating which features the guest supports and will test
 
     mov eax, 1              ; Read CPUID page 1
+    xor rcx, rcx
     cpuid
 
     test edx, (1 << 23)     ; MMX bit
@@ -304,7 +305,7 @@ XSAVE.Format.Loop:
     jz XSAVE.Format.Zero    ; Set to zero if clear
 
     mov rax, 0xD            ; Read CPUID page 0xD for the component...
-    add rcx, 1              ; ... RCX + 1 (RCX=0 is main, RCX=1 is reserved, RCX=2..62 correspond to XCR0.n, RCX=63 is reserved)
+    add rcx, 1              ; ... RCX + 1 (0 = main, 1 = reserved, 2..62 = correspond to XCR0.n, 63 = reserved)
     cpuid                   ; ... in order to retrieve their base addresses, sizes and alignments
     jmp XSAVE.Format.Write  ; Don't zero out values
 
