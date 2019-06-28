@@ -924,7 +924,7 @@ void printXSAVE(VirtualProcessor& vp, uint64_t xsaveAddress, uint32_t bases[16],
         uint64_t prevSize;
 
         // Get the address of the specified component and updates the offset
-        auto& getAddr = [&](uint8_t index) -> uint64_t {
+        auto getAddr = [&](uint8_t index) -> uint64_t {
             if (location == 0) {
                 // First item is always located at location 576
                 location = 576;

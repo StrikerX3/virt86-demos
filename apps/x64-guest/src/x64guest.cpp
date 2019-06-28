@@ -207,9 +207,6 @@ int main(int argc, char* argv[]) {
     // Create virtual machine
     VMSpecifications vmSpecs = { 0 };
     vmSpecs.numProcessors = 1;
-    vmSpecs.extendedVMExits = ExtendedVMExit::CPUID;
-    vmSpecs.vmExitCPUIDFunctions.push_back(0);
-    vmSpecs.CPUIDResults.emplace_back(0x80000002, 'vupc', ' tri', 'UPCV', '    ');
     printf("Creating virtual machine... ");
     auto opt_vm = platform.CreateVM(vmSpecs);
     if (!opt_vm) {
