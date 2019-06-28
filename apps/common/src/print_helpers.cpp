@@ -601,6 +601,27 @@ void printFPUControlRegs(VirtualProcessor& vp) noexcept {
     printf("FPU.DS:DP = %04x:%08x\n", fpuCtl.ds, fpuCtl.dp);
 }
 
+void printMXCSRRegs(VirtualProcessor& vp) noexcept {
+    MXCSR mxcsr, mxcsrMask;
+    auto status = vp.GetMXCSR(mxcsr);
+    if (status != VPOperationStatus::OK) {
+        printf("Failed to retrieve MMX control/status registers\n");
+    }
+
+    const auto extCRs = BitmaskEnum(vp.GetVirtualMachine().GetPlatform().GetFeatures().extendedControlRegisters);
+    if (extCRs.AnyOf(ExtendedControlRegister::MXCSRMask)) {
+        status = vp.GetMXCSRMask(mxcsrMask);
+        if (status != VPOperationStatus::OK) {
+            printf("Failed to retrieve MXCSR mask\n");
+        }
+    }
+
+    printf("MXCSR      = %08x\n", mxcsr.u32);
+    if (extCRs.AnyOf(ExtendedControlRegister::MXCSRMask)) {
+        printf("MXCSR_MASK = %08x\n", mxcsrMask.u32);
+    }
+}
+
 void printSTRegs(VirtualProcessor& vp) noexcept {
     Reg regs[] = {
         Reg::ST0, Reg::ST1, Reg::ST2, Reg::ST3, Reg::ST4, Reg::ST5, Reg::ST6, Reg::ST7,
@@ -656,72 +677,97 @@ void printMMRegs(VirtualProcessor& vp, MMFormat format) noexcept {
     }
 }
 
-void printMXCSRRegs(VirtualProcessor& vp) noexcept {
-    MXCSR mxcsr, mxcsrMask;
-    auto status = vp.GetMXCSR(mxcsr);
-    if (status != VPOperationStatus::OK) {
-        printf("Failed to retrieve MMX control/status registers\n");
-    }
-
-    const auto extCRs = BitmaskEnum(vp.GetVirtualMachine().GetPlatform().GetFeatures().extendedControlRegisters);
-    if (extCRs.AnyOf(ExtendedControlRegister::MXCSRMask)) {
-        status = vp.GetMXCSRMask(mxcsrMask);
-        if (status != VPOperationStatus::OK) {
-            printf("Failed to retrieve MXCSR mask\n");
-        }
-    }
-
-    printf("MXCSR      = %08x\n", mxcsr.u32);
-    if (extCRs.AnyOf(ExtendedControlRegister::MXCSRMask)) {
-        printf("MXCSR_MASK = %08x\n", mxcsrMask.u32);
+template<size_t bytes, typename T>
+static void printXMMValsI8(T& values) {
+    for (int j = bytes - 1; j >= 0; j--) {
+        printf(" %02" PRIx8, values.i8[j]);
     }
 }
 
-template<size_t N, typename T>
-static void printXMMVals(T& values, XMMFormat format) {
+template<size_t bytes, typename T>
+static void printXMMValsI16(T& values) {
+    for (int j = bytes / 2 - 1; j >= 0; j--) {
+        printf("  %04" PRIx16, values.i16[j]);
+    }
+}
+
+template<size_t bytes, typename T>
+static void printXMMValsI32(T& values) {
+    for (int j = bytes / 4 - 1; j >= 0; j--) {
+        printf("  %08" PRIx32, values.i32[j]);
+    }
+}
+
+template<size_t bytes, typename T>
+static void printXMMValsI64(T& values) {
+    for (int j = bytes / 8 - 1; j >= 0; j--) {
+        printf("  %016" PRIx64, values.i64[j]);
+    }
+}
+
+template<size_t bytes, typename T>
+static void printXMMValsF32(T& values) {
+    for (int j = bytes / 4 - 1; j >= 0; j--) {
+        printf("  %f", values.f32[j]);
+    }
+}
+
+template<size_t bytes, typename T>
+static void printXMMValsF64(T& values) {
+    for (int j = bytes / 8 - 1; j >= 0; j--) {
+        printf("  %lf", values.f64[j]);
+    }
+}
+
+template<size_t bytes, typename T1, typename... TN>
+static void _printXMMVals(XMMFormat format, T1& values, TN&... moreValues) {
     switch (format) {
     case XMMFormat::I8:
-        for (int j = N - 1; j >= 0; j--) {
-            printf(" %02" PRIx8, values.i8[j]);
-        }
-        printf("\n");
+        printXMMValsI8<bytes>(values);
         break;
     case XMMFormat::I16:
-        for (int j = N/2 - 1; j >= 0; j--) {
-            printf("  %04" PRIx16, values.i16[j]);
-        }
-        printf("\n");
+        printXMMValsI16<bytes>(values);
         break;
-    case XMMFormat::I32: case XMMFormat::IF32:
-        for (int j = N/4 - 1; j >= 0; j--) {
-            printf("  %08" PRIx32, values.i32[j]);
-        }
-        printf("\n");
+    case XMMFormat::I32:
+        printXMMValsI32<bytes>(values);
         break;
-    case XMMFormat::I64: case XMMFormat::IF64:
-        for (int j = N/8 - 1; j >= 0; j--) {
-            printf("  %016" PRIx64, values.i64[j]);
-        }
-        printf("\n");
+    case XMMFormat::I64:
+        printXMMValsI64<bytes>(values);
+        break;
+    case XMMFormat::F32:
+        printXMMValsF32<bytes>(values);
+        break;
+    case XMMFormat::F64:
+        printXMMValsF64<bytes>(values);
         break;
     }
+    _printXMMVals<bytes, TN...>(format, moreValues...);
+}
 
-    if (format == XMMFormat::IF32 || format == XMMFormat::IF64) {
-        printf("       ");
-    }
+template<size_t bytes>
+static void _printXMMVals(XMMFormat format) {
+}
 
+template<size_t bytes, typename T1, typename... TN>
+static void printXMMVals(XMMFormat format, T1& values, TN&... moreValues) {
     switch (format) {
-    case XMMFormat::F32: case XMMFormat::IF32:
-        for (int j = N/4 - 1; j >= 0; j--) {
-            printf("  %f", values.f32[j]);
-        }
-        printf("\n");
+    case XMMFormat::I8:
+    case XMMFormat::I16:
+    case XMMFormat::I32:
+    case XMMFormat::I64:
+    case XMMFormat::F32:
+    case XMMFormat::F64:
+        _printXMMVals<bytes>(format, values, moreValues...);
         break;
-    case XMMFormat::F64: case XMMFormat::IF64:
-        for (int j = N/8 - 1; j >= 0; j--) {
-            printf("  %lf", values.f64[j]);
-        }
-        printf("\n");
+    case XMMFormat::IF32:
+        _printXMMVals<bytes>(XMMFormat::I32, values, moreValues...);
+        printf("\n       ");
+        _printXMMVals<bytes>(XMMFormat::F32, values, moreValues...);
+        break;
+    case XMMFormat::IF64:
+        _printXMMVals<bytes>(XMMFormat::I64, values, moreValues...);
+        printf("\n       ");
+        _printXMMVals<bytes>(XMMFormat::F64, values, moreValues...);
         break;
     }
 }
@@ -739,7 +785,8 @@ void printXMMRegs(VirtualProcessor& vp, XMMFormat format) noexcept {
 
         const auto& v = value.xmm;
         printf("XMM%-2u =", i);
-        printXMMVals<16>(v, format);
+        printXMMVals<16>(format, v);
+        printf("\n");
     }
 }
 
@@ -756,7 +803,8 @@ void printYMMRegs(VirtualProcessor& vp, XMMFormat format) noexcept {
 
         const auto& v = value.ymm;
         printf("YMM%-2u =", i);
-        printXMMVals<32>(v, format);
+        printXMMVals<32>(format, v);
+        printf("\n");
     }
 }
 
@@ -773,35 +821,250 @@ void printZMMRegs(VirtualProcessor& vp, XMMFormat format) noexcept {
 
         const auto& v = value.zmm;
         printf("ZMM%-2u =", i);
-        printXMMVals<64>(v, format);
+        printXMMVals<64>(format, v);
+        printf("\n");
     }
 }
 
-void printFXSAVE(FXSAVEArea& fxsave, bool printSSE) noexcept {
-    // TODO: print basic state and ST/MM regs
+void printFXSAVE(FXSAVEArea& fxsave, bool ia32e, bool printSSE, MMFormat mmFormat, XMMFormat xmmFormat) noexcept {
+    printf("FPU.CW = %04x   FPU.SW = %04x   FPU.TW = %04x   FPU.OP = %04x\n", fxsave.fcw, fxsave.fsw, fxsave.ftw, fxsave.fop);
+    if (ia32e) {
+        printf("FPU.IP = %016" PRIx64 "\n", fxsave.ip64.fip);
+        printf("FPU.DP = %016" PRIx64 "\n", fxsave.dp64.fdp);
+    }
+    else {
+        printf("FPU.CS:IP = %04" PRIx16 ":%08" PRIx32 "\n", fxsave.ip32.fcs, fxsave.ip32.fip);
+        printf("FPU.DS:DP = %04" PRIx16 ":%08" PRIx32 "\n", fxsave.dp32.fds, fxsave.dp32.fdp);
+    }
+    printf("MXCSR      = %08x\n", fxsave.mxcsr.u32);
+    printf("MXCSR_MASK = %08x\n", fxsave.mxcsr_mask.u32);
+    for (int i = 0; i < 8; i++) {
+        printf("ST(%d) = %016" PRIx64 " %04x\n", i, fxsave.st_mm[i].st.significand, fxsave.st_mm[i].st.exponentSign);
+    }
+    for (int i = 0; i < 8; i++) {
+        printf(" MM%d =", i);
+        switch (mmFormat) {
+        case MMFormat::I8:
+            for (int j = 7; j >= 0; j--) {
+                printf(" %02" PRIx8, fxsave.st_mm[i].mm.i8[j]);
+            }
+            break;
+        case MMFormat::I16:
+            for (int j = 3; j >= 0; j--) {
+                printf(" %04" PRIx16, fxsave.st_mm[i].mm.i16[j]);
+            }
+            break;
+        case MMFormat::I32:
+            for (int j = 1; j >= 0; j--) {
+                printf(" %08" PRIx32, fxsave.st_mm[i].mm.i32[j]);
+            }
+            break;
+        case MMFormat::I64:
+            printf(" %016" PRIx64, fxsave.st_mm[i].mm.i64[0]);
+            break;
+        }
+        printf("\n");
+    }
 
     if (printSSE) {
-        // TODO: print XMM regs
+        const uint8_t maxMMRegs = ia32e ? 32 : 8;
+
+        for (uint8_t i = 0; i < maxMMRegs; i++) {
+            printf("XMM%-2u =", i);
+            printXMMVals<16>(xmmFormat, fxsave.xmm[i]);
+        }
     }
 }
 
-void printXSAVE(VirtualProcessor& vp, uint64_t xsaveAddress, uint32_t bases[16], uint32_t sizes[16], uint32_t alignments) noexcept {
+void printXSAVE(VirtualProcessor& vp, uint64_t xsaveAddress, uint32_t bases[16], uint32_t sizes[16], uint32_t alignments, MMFormat mmFormat, XMMFormat xmmFormat) noexcept {
     XSAVEArea xsave;
     if (!vp.LMemRead(xsaveAddress, sizeof(xsave), &xsave)) {
         printf("Could not read XSAVE from memory at 0x%" PRIx64, xsaveAddress);
         return;
     }
+    
+    auto cpuMode = getCPUMode(vp);
+    bool ia32e = cpuMode == CPUMode::IA32e;
 
+    printFXSAVE(xsave.fxsave, ia32e, false, mmFormat, xmmFormat);
+
+    // Components used in XSAVE
+    XSAVE_AVX avx;
+    XSAVE_MPX_BNDREGS bndregs;
+    XSAVE_MPX_BNDCSR bndcsr;
+    XSAVE_AVX512_Opmask opmask;
+    XSAVE_AVX512_ZMM_Hi256 zmm_hi256;
+    XSAVE_AVX512_Hi16_ZMM hi16_zmm;
+    XSAVE_PT pt;
+    XSAVE_PKRU pkru;
+    XSAVE_HDC hdc;
+
+    // Addresses of components and whether they are available
+    uint64_t addr_avx; bool has_avx = false;
+    uint64_t addr_bndregs; bool has_bndregs = false;
+    uint64_t addr_bndcsr; bool has_bndcsr = false;
+    uint64_t addr_opmask; bool has_opmask = false;
+    uint64_t addr_zmm_hi256; bool has_zmm_hi256 = false;
+    uint64_t addr_hi16_zmm; bool has_hi16_zmm = false;
+    uint64_t addr_pt; bool has_pt = false;
+    uint64_t addr_pkru; bool has_pkru = false;
+    uint64_t addr_hdc; bool has_hdc = false;
+
+    // Get addresses of each component according to data format
     if (xsave.header.xcomp_bv.data.format) {
-        printf("XSAVE is in compacted format\n\n");
+        // XSAVE is in compacted format
+        auto& components = xsave.header.xcomp_bv.data;
+
+        // The following algorithm is described in Section 13.4.3 of
+        // Intel® 64 and IA-32 Architectures Software Developer's Manual, Volume 1
+
+        // Keep track of the current location and size of previous component.
+        // Location 0 indicates this is the first component.
+        uint64_t location = 0;
+        uint64_t prevSize;
+
+        // Get the address of the specified component and updates the offset
+        auto& getAddr = [&](uint8_t index) -> uint64_t {
+            if (location == 0) {
+                // First item is always located at location 576
+                location = 576;
+            }
+            else if (alignments & (1 << (index + 2))) {
+                // Aligned components are located at the next 64 byte boundary
+                location = (location + prevSize + 63) & ~63;
+            }
+            else {
+                // Unaligned components are located immediately after the previous component
+                location += prevSize;
+            }
+            prevSize = sizes[index];
+            return xsaveAddress + location;
+        };
+
+        if (components.AVX) { addr_avx = getAddr(0); has_avx = true; }
+        if (components.MPX_bndregs) { addr_bndregs = getAddr(1); has_bndregs = true; }
+        if (components.MPX_bndcsr) { addr_bndcsr = getAddr(2); has_bndcsr = true; }
+        if (components.AVX512_opmask) { addr_opmask = getAddr(3); has_opmask = true; }
+        if (components.ZMM_Hi256) { addr_zmm_hi256 = getAddr(4); has_zmm_hi256 = true; }
+        if (components.Hi16_ZMM) { addr_hi16_zmm = getAddr(5); has_hi16_zmm = true; }
+        if (components.PT) { addr_pt = getAddr(6); has_pt = true; }
+        if (components.PKRU) { addr_pkru = getAddr(7); has_pkru = true; }
+        if (components.HDC) { addr_hdc = getAddr(11); has_hdc = true; }
     }
     else {
-        printf("XSAVE is in standard format\n\n");
+        // XSAVE is in standard format
+        auto& components = xsave.header.xstate_bv.data;
+        if (components.AVX) { addr_avx = xsaveAddress + bases[0]; has_avx = true; }
+        if (components.MPX_bndregs) { addr_bndregs = xsaveAddress + bases[1]; has_bndregs = true; }
+        if (components.MPX_bndcsr) { addr_bndcsr = xsaveAddress + bases[2]; has_bndcsr = true; }
+        if (components.AVX512_opmask) { addr_opmask = xsaveAddress + bases[3]; has_opmask = true; }
+        if (components.ZMM_Hi256) { addr_zmm_hi256 = xsaveAddress + bases[4]; has_zmm_hi256 = true; }
+        if (components.Hi16_ZMM) { addr_hi16_zmm = xsaveAddress + bases[5]; has_hi16_zmm = true; }
+        if (components.PT) { addr_pt = xsaveAddress + bases[6]; has_pt = true; }
+        if (components.PKRU) { addr_pkru = xsaveAddress + bases[7]; has_pkru = true; }
+        if (components.HDC) { addr_hdc = xsaveAddress + bases[11]; has_hdc = true; }
     }
 
-    printFXSAVE(xsave.fxsave, false);
+    // Read components from memory
+    if (has_avx && !vp.LMemRead(addr_avx, sizes[0], &avx)) {
+        printf("Could not read AVX state\n");
+        has_avx = false;
+    }
+    if (has_bndregs && !vp.LMemRead(addr_bndregs, sizes[1], &bndregs)) {
+        printf("Could not read MPX.BNDREGS state\n");
+        has_bndregs = false;
+    }
+    if (has_bndcsr && !vp.LMemRead(addr_bndcsr, sizes[2], &bndcsr)) {
+        printf("Could not read MPX.BNDCSR state\n");
+        has_bndcsr = false;
+    }
+    if (has_opmask && !vp.LMemRead(addr_opmask, sizes[3], &opmask)) {
+        printf("Could not read AVX512.opmask state\n");
+        has_opmask = false;
+    }
+    if (has_zmm_hi256 && !vp.LMemRead(addr_zmm_hi256, sizes[4], &zmm_hi256)) {
+        printf("Could not read AVX512.ZMM_Hi256 state\n");
+        has_zmm_hi256 = false;
+    }
+    if (has_hi16_zmm && !vp.LMemRead(addr_hi16_zmm, sizes[5], &hi16_zmm)) {
+        printf("Could not read AVX512.Hi16_ZMM state\n");
+        has_hi16_zmm = false;
+    }
+    if (has_pt && !vp.LMemRead(addr_pt, sizes[6], &pt)) {
+        printf("Could not read PT state\n");
+        has_pt = false;
+    }
+    if (has_pkru && !vp.LMemRead(addr_pkru, sizes[7], &pkru)) {
+        printf("Could not read PKRU state\n");
+        has_pkru = false;
+    }
+    if (has_hdc && !vp.LMemRead(addr_hdc, sizes[11], &hdc)) {
+        printf("Could not read PKRU state\n");
+        has_hdc = false;
+    }
     
-    // TODO: print XSAVE data structure and its components
+    // Print available components
+    if (has_avx) {
+        if (has_zmm_hi256) {
+            for (uint8_t i = 0; i < sizes[4] / sizeof(ZMMHighValue); i++) {
+                printf("ZMM%-2u =", i);
+                printXMMVals<16>(xmmFormat, zmm_hi256.zmmHigh[i], avx.ymmHigh[i], xsave.fxsave.xmm[i]);
+                printf("\n");
+            }
+
+            if (has_hi16_zmm) {
+                for (uint8_t i = 0; i < sizes[5] / sizeof(ZMMValue); i++) {
+                    printf("ZMM%-2u =", i + 16);
+                    printXMMVals<64>(xmmFormat, hi16_zmm.zmm[i]);
+                    printf("\n");
+                }
+            }
+        }
+        else {
+            for (uint8_t i = 0; i < sizes[0] / sizeof(YMMHighValue); i++) {
+                printf("YMM%-2u =", i);
+                printXMMVals<16>(xmmFormat, avx.ymmHigh[i], xsave.fxsave.xmm[i]);
+                printf("\n");
+            }
+        }
+
+        if (has_opmask) {
+            for (uint8_t i = 0; i < array_size(opmask.k); i++) {
+                printf("  K%u = %016" PRIx64 "\n", i, opmask.k[i]);
+            }
+        }
+
+        if (has_bndregs) {
+            for (uint8_t i = 0; i < array_size(bndregs.bnd); i++) {
+                printf("BND%u = %016" PRIx64 "%016" PRIx64 "\n", i, bndregs.bnd[i].high, bndregs.bnd[i].low);
+            }
+        }
+
+        if (has_bndcsr) {
+            printf("BNDCFGU   = %016" PRIx64 "\n", bndcsr.BNDCFGU);
+            printf("BNDSTATUS = %016" PRIx64 "\n", bndcsr.BNDSTATUS);
+        }
+
+        if (has_pt) {
+            printf("PT.IA32_RTIT_CTL = %016" PRIx64 "\n", pt.IA32_RTIT_CTL);
+            printf("PT.IA32_RTIT_OUTPUT_BASE = %016" PRIx64 "\n", pt.IA32_RTIT_OUTPUT_BASE);
+            printf("PT.IA32_RTIT_OUTPUT_MASK_PTRS = %016" PRIx64 "\n", pt.IA32_RTIT_OUTPUT_MASK_PTRS);
+            printf("PT.IA32_RTIT_STATUS = %016" PRIx64 "\n", pt.IA32_RTIT_STATUS);
+            printf("PT.IA32_RTIT_CR3_MATCH = %016" PRIx64 "\n", pt.IA32_RTIT_CR3_MATCH);
+            printf("PT.IA32_RTIT_ADDR0_A = %016" PRIx64 "\n", pt.IA32_RTIT_ADDR0_A);
+            printf("PT.IA32_RTIT_ADDR0_B = %016" PRIx64 "\n", pt.IA32_RTIT_ADDR0_B);
+            printf("PT.IA32_RTIT_ADDR1_A = %016" PRIx64 "\n", pt.IA32_RTIT_ADDR1_A);
+            printf("PT.IA32_RTIT_ADDR1_B = %016" PRIx64 "\n", pt.IA32_RTIT_ADDR1_B);
+        }
+
+        if (has_pkru) {
+            printf("PKRU = %08" PRIx32 "\n", pkru.pkru);
+        }
+
+        if (has_hdc) {
+            printf("HDC.IA32_PM_CTL1 = %016" PRIx64 "\n", hdc.IA32_PM_CTL1);
+        }
+    }
 }
 
 void printDirtyBitmap(VirtualMachine& vm, uint64_t baseAddress, uint64_t numPages) noexcept {

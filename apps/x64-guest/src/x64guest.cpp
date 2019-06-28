@@ -668,7 +668,7 @@ int main(int argc, char* argv[]) {
             vp.LMemRead(r13.u64, sizeof(sizes), sizes);
             vp.LMemRead(r14.u64, sizeof(alignments), &alignments);
 
-            printXSAVE(vp, rsi.u64, bases, sizes, alignments);
+            printXSAVE(vp, rsi.u64, bases, sizes, alignments, MMFormat::I16, XMMFormat::IF32);
             printf("\n");
             printf("XSAVE test complete\n");
         }
@@ -676,7 +676,7 @@ int main(int argc, char* argv[]) {
         printf("\n");
     }
     else {
-        printf("XSAVE and AVX not supported by guest; skipping test\n\n");
+        printf("XSAVE not supported by guest; skipping test\n\n");
     }
 
     // ----- End ------------------------------------------------------------------------------------------------------
