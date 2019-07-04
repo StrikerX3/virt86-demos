@@ -39,6 +39,8 @@ enum class XMMFormat {
     IF32, IF64,
 };
 
+void printHostFeatures() noexcept;
+void printPlatformFeatures(virt86::Platform& platform) noexcept;
 void printMemoryMappingStatus(virt86::MemoryMappingStatus status) noexcept;
 void printFPExts(virt86::FloatingPointExtension fpExts) noexcept;
 void printRegs(virt86::VirtualProcessor& vp) noexcept;

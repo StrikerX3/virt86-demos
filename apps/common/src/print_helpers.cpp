@@ -24,6 +24,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
 #include "virt86/virt86.hpp"
+#include "virt86/util/host_info.hpp"
 
 #include "print_helpers.hpp"
 #include "align_alloc.hpp"
@@ -33,6 +34,86 @@ SOFTWARE.
 #include <cinttypes>
 
 using namespace virt86;
+
+void printHostFeatures() noexcept {
+    printf("Host features:\n");
+    printf("  Maximum guest physical address: 0x%" PRIx64 "\n", HostInfo.gpa.maxAddress);
+    printf("  Floating point extensions:");
+    printFPExts(HostInfo.floatingPointExtensions);
+    printf("\n\n");
+}
+
+void printPlatformFeatures(Platform& platform) noexcept {
+    printf("%s v%s\n", platform.GetName().c_str(), platform.GetVersion().c_str());
+    printf("Hypervisor features:\n");
+    auto& features = platform.GetFeatures();
+    printf("  Maximum number of VCPUs: %u per VM, %u global\n", features.maxProcessorsPerVM, features.maxProcessorsGlobal);
+    printf("  Maximum guest physical address: 0x%" PRIx64 "\n", features.guestPhysicalAddress.maxAddress);
+    printf("  Unrestricted guest: %s\n", (features.unrestrictedGuest) ? "supported" : "unsuported");
+    printf("  Extended Page Tables: %s\n", (features.extendedPageTables) ? "supported" : "unsuported");
+    printf("  Guest debugging: %s\n", (features.guestDebugging) ? "available" : "unavailable");
+    printf("  Memory protection: %s\n", (features.guestMemoryProtection) ? "available" : "unavailable");
+    printf("  Dirty page tracking: %s\n", (features.dirtyPageTracking) ? "available" : "unavailable");
+    printf("  Partial dirty bitmap querying: %s\n", (features.partialDirtyBitmap) ? "supported" : "unsupported");
+    printf("  Large memory allocation: %s\n", (features.largeMemoryAllocation) ? "supported" : "unsuported");
+    printf("  Memory aliasing: %s\n", (features.memoryAliasing) ? "supported" : "unsuported");
+    printf("  Memory unmapping: %s\n", (features.memoryUnmapping) ? "supported" : "unsuported");
+    printf("  Partial unmapping: %s\n", (features.partialUnmapping) ? "supported" : "unsuported");
+    printf("  Partial MMIO instructions: %s\n", (features.partialMMIOInstructions) ? "yes" : "no");
+    printf("  Guest TSC scaling: %s\n", (features.guestTSCScaling) ? "supported" : "unsupported");
+    printf("  Custom CPUID results: %s\n", (features.customCPUIDs) ? "supported" : "unsupported");
+    if (features.customCPUIDs && !features.supportedCustomCPUIDs.empty()) {
+        printf("       Function        EAX         EBX         ECX         EDX\n");
+        for (auto it = features.supportedCustomCPUIDs.cbegin(); it != features.supportedCustomCPUIDs.cend(); it++) {
+            printf("      0x%08x = 0x%08x  0x%08x  0x%08x  0x%08x\n", it->function, it->eax, it->ebx, it->ecx, it->edx);
+        }
+    }
+    printf("  Floating point extensions:");
+    printFPExts(features.floatingPointExtensions);
+    printf("\n");
+    printf("  Extended control registers:");
+    const auto extCRs = BitmaskEnum(features.extendedControlRegisters);
+    if (!extCRs) printf(" None");
+    else {
+        if (extCRs.AnyOf(ExtendedControlRegister::CR8)) printf(" CR8");
+        if (extCRs.AnyOf(ExtendedControlRegister::XCR0)) printf(" XCR0");
+        if (extCRs.AnyOf(ExtendedControlRegister::MXCSRMask)) printf(" MXCSR_MASK");
+    }
+    printf("\n");
+    printf("  Extended VM exits:");
+    const auto extVMExits = BitmaskEnum(features.extendedVMExits);
+    if (!extVMExits) printf(" None");
+    else {
+        if (extVMExits.AnyOf(ExtendedVMExit::CPUID)) printf(" CPUID");
+        if (extVMExits.AnyOf(ExtendedVMExit::MSRAccess)) printf(" MSRAccess");
+        if (extVMExits.AnyOf(ExtendedVMExit::Exception)) printf(" Exception");
+        if (extVMExits.AnyOf(ExtendedVMExit::TSCAccess)) printf(" TSCAccess");
+    }
+    printf("\n");
+    printf("  Exception exits:");
+    const auto excptExits = BitmaskEnum(features.exceptionExits);
+    if (!excptExits) printf(" None");
+    else {
+        if (excptExits.AnyOf(ExceptionCode::DivideErrorFault)) printf(" DivideErrorFault");
+        if (excptExits.AnyOf(ExceptionCode::DebugTrapOrFault)) printf(" DebugTrapOrFault");
+        if (excptExits.AnyOf(ExceptionCode::BreakpointTrap)) printf(" BreakpointTrap");
+        if (excptExits.AnyOf(ExceptionCode::OverflowTrap)) printf(" OverflowTrap");
+        if (excptExits.AnyOf(ExceptionCode::BoundRangeFault)) printf(" BoundRangeFault");
+        if (excptExits.AnyOf(ExceptionCode::InvalidOpcodeFault)) printf(" InvalidOpcodeFault");
+        if (excptExits.AnyOf(ExceptionCode::DeviceNotAvailableFault)) printf(" DeviceNotAvailableFault");
+        if (excptExits.AnyOf(ExceptionCode::DoubleFaultAbort)) printf(" DoubleFaultAbort");
+        if (excptExits.AnyOf(ExceptionCode::InvalidTaskStateSegmentFault)) printf(" InvalidTaskStateSegmentFault");
+        if (excptExits.AnyOf(ExceptionCode::SegmentNotPresentFault)) printf(" SegmentNotPresentFault");
+        if (excptExits.AnyOf(ExceptionCode::StackFault)) printf(" StackFault");
+        if (excptExits.AnyOf(ExceptionCode::GeneralProtectionFault)) printf(" GeneralProtectionFault");
+        if (excptExits.AnyOf(ExceptionCode::PageFault)) printf(" PageFault");
+        if (excptExits.AnyOf(ExceptionCode::FloatingPointErrorFault)) printf(" FloatingPointErrorFault");
+        if (excptExits.AnyOf(ExceptionCode::AlignmentCheckFault)) printf(" AlignmentCheckFault");
+        if (excptExits.AnyOf(ExceptionCode::MachineCheckAbort)) printf(" MachineCheckAbort");
+        if (excptExits.AnyOf(ExceptionCode::SimdFloatingPointFault)) printf(" SimdFloatingPointFault");
+    }
+    printf("\n\n");
+}
 
 void printMemoryMappingStatus(virt86::MemoryMappingStatus status) noexcept {
     switch (status) {
@@ -916,7 +997,7 @@ void printXSAVE(VirtualProcessor& vp, uint64_t xsaveAddress, uint32_t bases[16],
         auto& components = xsave.header.xcomp_bv.data;
 
         // The following algorithm is described in Section 13.4.3 of
-        // Intel® 64 and IA-32 Architectures Software Developer's Manual, Volume 1
+        // Intelï¿½ 64 and IA-32 Architectures Software Developer's Manual, Volume 1
 
         // Keep track of the current location and size of previous component.
         // Location 0 indicates this is the first component.

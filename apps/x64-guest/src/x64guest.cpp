@@ -1,3 +1,5 @@
+#include <cmath>
+
 /*
 Entry point of the 64-bit guest demo.
 
@@ -181,8 +183,10 @@ int main(int argc, char* argv[]) {
 
     // ----- Hypervisor platform initialization -------------------------------------------------------------------------------
 
+    printf("virt86 version: " VIRT86_VERSION "\n\n");
+
     // Pick the first hypervisor platform that is available and properly initialized on this system.
-    printf("Loading virtualization platforms... ");
+    printf("Loading virtualization platform... ");
 
     bool foundPlatform = false;
     size_t platformIndex = 0;
@@ -203,7 +207,13 @@ int main(int argc, char* argv[]) {
 
     Platform& platform = PlatformFactories[platformIndex]();
     auto& features = platform.GetFeatures();
-    
+
+    // Print out the host's features
+    printHostFeatures();
+
+    // Print out the platform's features
+    printPlatformFeatures(platform);
+
     // Create virtual machine
     VMSpecifications vmSpecs = { 0 };
     vmSpecs.numProcessors = 1;
@@ -325,7 +335,7 @@ int main(int argc, char* argv[]) {
 
     // Define some helper functions for tests
     static constexpr float float_epsilon = 1e-5f;
-    auto feq = [](float x, float y) -> bool { return fabs(x - y) <= float_epsilon; };
+    auto feq = [](float x, float y) -> bool { return std::fabs(x - y) <= float_epsilon; };
 
     static constexpr double double_epsilon = 1e-9f;
     auto deq = [](double x, double y) -> bool { return fabs(x - y) <= double_epsilon; };
