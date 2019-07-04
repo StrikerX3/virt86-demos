@@ -34,9 +34,14 @@
 # Visual Studio files
 .vs/
 
-# CMake build folder
+# CMake build folders
 build/
 cmake-build-debug/
+debug-build/
+release-build/
 
 # CLion project metadata
 .idea/
+
+# macOS
+.DS_Store
