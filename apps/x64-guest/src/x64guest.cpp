@@ -177,7 +177,7 @@ int main(int argc, char* argv[]) {
         return -1;
     }
     fclose(fp);
-    printf("RAM loaded from %s\n", argv[2]);
+    printf("RAM loaded from %s (%zu bytes)\n", argv[2], readLen);
     
     printf("\n");
 
@@ -293,7 +293,7 @@ int main(int argc, char* argv[]) {
         return -1;
     }
     memset(moreRam, 0, moreRamSize);
-    printf("Additional RAM allocated: %u bytes\n", moreRamSize);
+    printf("Additional RAM allocated: %zu bytes\n", moreRamSize);
     memcpy(moreRam, &checkValue1, sizeof(checkValue1));
     memcpy(moreRam + PAGE_SIZE, &checkValue2, sizeof(checkValue2));
 
@@ -420,9 +420,9 @@ int main(int argc, char* argv[]) {
             vp.LMemRead(rsi.u64, sizeof(memValue), &memValue);
 
             // Reinterpret RAX as if it were the lowest 64 bits of XMM0
-            if (feq(rax.xmm.f32[0], 30.8) && feq(rax.xmm.f32[1], 51.48)) printf("RAX contains the correct result\n");
-            if (feq(memValue[0], 30.8) && feq(memValue[1], 51.48) && feq(memValue[2], 77.0) && feq(memValue[3], 107.36)) printf("Memory contains the correct result\n");
-            if (feq(xmm0.xmm.f32[0], 30.8) && feq(xmm0.xmm.f32[1], 51.48) && feq(xmm0.xmm.f32[2], 77.0) && feq(xmm0.xmm.f32[3], 107.36)) printf("XMM0 contains the correct result\n");
+            if (feq(rax.xmm.f32[0], 30.8f) && feq(rax.xmm.f32[1], 51.48f)) printf("RAX contains the correct result\n");
+            if (feq(memValue[0], 30.8f) && feq(memValue[1], 51.48f) && feq(memValue[2], 77.0f) && feq(memValue[3], 107.36f)) printf("Memory contains the correct result\n");
+            if (feq(xmm0.xmm.f32[0], 30.8f) && feq(xmm0.xmm.f32[1], 51.48f) && feq(xmm0.xmm.f32[2], 77.0f) && feq(xmm0.xmm.f32[3], 107.36f)) printf("XMM0 contains the correct result\n");
             printf("SSE test complete\n");
         }
 
