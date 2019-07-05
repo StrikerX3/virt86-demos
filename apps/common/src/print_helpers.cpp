@@ -300,110 +300,10 @@ void printDR7Bits(uint64_t dr7) noexcept {
 }
 #undef PRINT_FLAG
 
-enum class CPUMode {
-    Unknown,
-    
-    RealAddress,
-    Virtual8086,
-    Protected,
-    IA32e,
-};
-
-CPUMode getCPUMode(VirtualProcessor& vp) noexcept {
-    RegValue cr0, rflags, efer;
-    vp.RegRead(Reg::CR0, cr0);
-    vp.RegRead(Reg::RFLAGS, rflags);
-    vp.RegRead(Reg::EFER, efer);
-
-    bool cr0_pe = (cr0.u64 & CR0_PE) != 0;
-    bool rflags_vm = (rflags.u64 & RFLAGS_VM) != 0;
-    bool efer_lma = (efer.u64 & EFER_LMA) != 0;
-
-    if (!cr0_pe) {
-        return CPUMode::RealAddress;
-    }
-    if (rflags_vm) {
-        return CPUMode::Virtual8086;
-    }
-    else if (efer_lma) {
-        return CPUMode::IA32e;
-    }
-    return CPUMode::Protected;
-}
-
-enum class PagingMode {
-    Unknown,
-    Invalid,
-
-    None,
-    NoneLME,
-    NonePAE,
-    NonePAEandLME,
-    ThirtyTwoBit,
-    PAE,
-    FourLevel,
-};
-
-PagingMode getPagingMode(VirtualProcessor& vp) noexcept {
-    RegValue cr0, cr4, efer;
-    vp.RegRead(Reg::CR0, cr0);
-    vp.RegRead(Reg::CR4, cr4);
-    vp.RegRead(Reg::EFER, efer);
-
-    bool cr0_pg = (cr0.u64 & CR0_PG) != 0;
-    bool cr4_pae = (cr4.u64 & CR4_PAE) != 0;
-    bool efer_lme = (efer.u64 & EFER_LME) != 0;
-
-    uint8_t pagingModeBits = 0
-        | (cr0_pg ? (1 << 2) : 0)
-        | (cr4_pae ? (1 << 1) : 0)
-        | (efer_lme ? (1 << 0) : 0);
-
-    switch (pagingModeBits) {
-    case 0b000: return PagingMode::None;
-    case 0b001: return PagingMode::NoneLME;
-    case 0b010: return PagingMode::NonePAE;
-    case 0b011: return PagingMode::NonePAEandLME;
-    case 0b100: return PagingMode::ThirtyTwoBit;
-    case 0b101: return PagingMode::Invalid;
-    case 0b110: return PagingMode::PAE;
-    case 0b111: return PagingMode::FourLevel;
-    default: return PagingMode::Unknown;
-    }
-}
-
-enum class SegmentSize {
-    Invalid,
-
-    _16,
-    _32,
-    _64,
-};
-
-SegmentSize getSegmentSize(VirtualProcessor& vp, Reg segmentReg) noexcept {
-    size_t regOffset = RegOffset<size_t>(Reg::CS, segmentReg);
-    size_t maxOffset = RegOffset<size_t>(Reg::CS, Reg::TR);
-    if (regOffset > maxOffset) {
-        return SegmentSize::Invalid;
-    }
-
-    RegValue value;
-    vp.RegRead(segmentReg, value);
-
-    CPUMode cpuMode = getCPUMode(vp);
-
-    if (cpuMode == CPUMode::IA32e && value.segment.attributes.longMode) {
-        return SegmentSize::_64;
-    }
-    if (value.segment.attributes.defaultSize) {
-        return SegmentSize::_32;
-    }
-    return SegmentSize::_16;
-}
-
 void printSeg(VirtualProcessor& vp, Reg seg) noexcept {
-    CPUMode mode = getCPUMode(vp);
-    SegmentSize size = getSegmentSize(vp, seg);
+    CPUExecutionMode mode = vp.GetExecutionMode();
+    SegmentSize size;
+    vp.GetSegmentSize(seg, size);
     RegValue value;
     vp.RegRead(seg, value);
 
@@ -413,7 +313,7 @@ void printSeg(VirtualProcessor& vp, Reg seg) noexcept {
     // - FS and GS have their base addresses stored in MSRs
     // - LDT and TSS entries are extended to 16 bytes to accomodate a 64-bit base address
 
-    if (mode == CPUMode::IA32e) {
+    if (mode == CPUExecutionMode::IA32e) {
         if (seg == Reg::LDTR || seg == Reg::TR) {
             printf("%04" PRIx16 " -> %016" PRIx64 ":%08" PRIx32 " [%04" PRIx16 "] ", value.segment.selector, value.segment.base, value.segment.limit, value.segment.attributes.u16);
         }
@@ -432,18 +332,18 @@ void printSeg(VirtualProcessor& vp, Reg seg) noexcept {
     if (value.segment.attributes.present) {
         if (value.segment.attributes.system) {
             if (value.segment.attributes.type & SEG_TYPE_CODE) {
-                if (mode == CPUMode::IA32e && value.segment.attributes.longMode) printf("64-bit code");
+                if (mode == CPUExecutionMode::IA32e && value.segment.attributes.longMode) printf("64-bit code");
                 else if (value.segment.attributes.defaultSize) printf("32-bit code");
                 else printf("16-bit code");
             }
             else {
-                if (mode == CPUMode::IA32e) printf("64-bit data");
+                if (mode == CPUExecutionMode::IA32e) printf("64-bit data");
                 else if (value.segment.attributes.defaultSize) printf("32-bit data");
                 else printf("16-bit data");
             }
         }
         else {
-            if (mode == CPUMode::IA32e) {
+            if (mode == CPUExecutionMode::IA32e) {
                 switch (value.segment.attributes.type) {
                 case 0b0010: printf("LDT"); break;
                 case 0b1001: printf("64-bit TSS (available)"); break;
@@ -494,11 +394,11 @@ void printSeg(VirtualProcessor& vp, Reg seg) noexcept {
 }
 
 void printTable(VirtualProcessor& vp, Reg table) noexcept {
-    CPUMode mode = getCPUMode(vp);
+    CPUExecutionMode mode = vp.GetExecutionMode();
     RegValue value;
     vp.RegRead(table, value);
 
-    if (mode == CPUMode::IA32e) {
+    if (mode == CPUExecutionMode::IA32e) {
         printf("%016" PRIx64 ":%04" PRIx16, value.table.base, value.table.limit);
     }
     else {
@@ -540,12 +440,12 @@ void printControlAndDebugRegs(VirtualProcessor& vp) noexcept {
     READREG(Reg::DR2, dr2); READREG(Reg::DR6, dr6);
     READREG(Reg::DR3, dr3); READREG(Reg::DR7, dr7);
 
-    CPUMode mode = getCPUMode(vp);
-
+    CPUExecutionMode mode = vp.GetExecutionMode();
+ 
     const auto extendedRegs = BitmaskEnum(vp.GetVirtualMachine().GetPlatform().GetFeatures().extendedControlRegisters);
 
     printf("EFER = %016" PRIx64, efer.u64); printEFERBits(efer.u64); printf("\n");
-    if (mode == CPUMode::IA32e) {
+    if (mode == CPUExecutionMode::IA32e) {
         printf(" CR2 = %016" PRIx64 "   CR0 = %016" PRIx64, cr2.u64, cr0.u64); printCR0Bits(cr0.u64); printf("\n");
         printf(" CR3 = %016" PRIx64 "   CR4 = %016" PRIx64, cr3.u64, cr4.u64); printCR4Bits(cr4.u64); printf("\n");
         printf(" DR0 = %016" PRIx64 "   CR8 = ", dr0.u64);
@@ -630,27 +530,28 @@ void printRegs64(VirtualProcessor& vp) noexcept {
 
 void printRegs(VirtualProcessor& vp) noexcept {
     // Print CPU mode, paging mode and code segment size
-    CPUMode cpuMode = getCPUMode(vp);
-    PagingMode pagingMode = getPagingMode(vp);
-    SegmentSize segmentSize = getSegmentSize(vp, Reg::CS);
+    CPUExecutionMode cpuMode = vp.GetExecutionMode();
+    CPUPagingMode pagingMode = vp.GetPagingMode();
+    SegmentSize segmentSize;
+    vp.GetSegmentSize(Reg::CS, segmentSize);
 
     switch (cpuMode) {
-    case CPUMode::RealAddress: printf("Real-address mode"); break;
-    case CPUMode::Virtual8086: printf("Virtual-8086 mode"); break;
-    case CPUMode::Protected: printf("Protected mode"); break;
-    case CPUMode::IA32e: printf("IA-32e mode"); break;
+    case CPUExecutionMode::RealAddress: printf("Real-address mode"); break;
+    case CPUExecutionMode::Virtual8086: printf("Virtual-8086 mode"); break;
+    case CPUExecutionMode::Protected: printf("Protected mode"); break;
+    case CPUExecutionMode::IA32e: printf("IA-32e mode"); break;
     }
     printf(", ");
 
     switch (pagingMode) {
-    case PagingMode::None: printf("no paging"); break;
-    case PagingMode::NoneLME: printf("no paging (LME enabled)"); break;
-    case PagingMode::NonePAE: printf("no paging (PAE enabled)"); break;
-    case PagingMode::NonePAEandLME: printf("no paging (PAE and LME enabled)"); break;
-    case PagingMode::ThirtyTwoBit: printf("32-bit paging"); break;
-    case PagingMode::Invalid: printf("*invalid*"); break;
-    case PagingMode::PAE: printf("PAE paging"); break;
-    case PagingMode::FourLevel: printf("4-level paging"); break;
+    case CPUPagingMode::None: printf("no paging"); break;
+    case CPUPagingMode::NoneLME: printf("no paging (LME enabled)"); break;
+    case CPUPagingMode::NonePAE: printf("no paging (PAE enabled)"); break;
+    case CPUPagingMode::NonePAEandLME: printf("no paging (PAE and LME enabled)"); break;
+    case CPUPagingMode::ThirtyTwoBit: printf("32-bit paging"); break;
+    case CPUPagingMode::Invalid: printf("*invalid*"); break;
+    case CPUPagingMode::PAE: printf("PAE paging"); break;
+    case CPUPagingMode::FourLevel: printf("4-level paging"); break;
     }
     printf(", ");
 
@@ -854,8 +755,8 @@ static void printXMMVals(XMMFormat format, T1& values, TN&... moreValues) {
 }
 
 void printXMMRegs(VirtualProcessor& vp, XMMFormat format) noexcept {
-    auto cpuMode = getCPUMode(vp);
-    const uint8_t maxMMRegs = (cpuMode == CPUMode::IA32e) ? 32 : 8;
+    auto cpuMode = vp.GetExecutionMode();
+    const uint8_t maxMMRegs = (cpuMode == CPUExecutionMode::IA32e) ? 32 : 8;
 
     for (uint8_t i = 0; i < maxMMRegs; i++) {
         RegValue value;
@@ -872,8 +773,8 @@ void printXMMRegs(VirtualProcessor& vp, XMMFormat format) noexcept {
 }
 
 void printYMMRegs(VirtualProcessor& vp, XMMFormat format) noexcept {
-    auto cpuMode = getCPUMode(vp);
-    const uint8_t maxMMRegs = (cpuMode == CPUMode::IA32e) ? 32 : 8;
+    auto cpuMode = vp.GetExecutionMode();
+    const uint8_t maxMMRegs = (cpuMode == CPUExecutionMode::IA32e) ? 32 : 8;
 
     for (uint8_t i = 0; i < maxMMRegs; i++) {
         RegValue value;
@@ -890,8 +791,8 @@ void printYMMRegs(VirtualProcessor& vp, XMMFormat format) noexcept {
 }
 
 void printZMMRegs(VirtualProcessor& vp, XMMFormat format) noexcept {
-    auto cpuMode = getCPUMode(vp);
-    const uint8_t maxMMRegs = (cpuMode == CPUMode::IA32e) ? 32 : 8;
+    auto cpuMode = vp.GetExecutionMode();
+    const uint8_t maxMMRegs = (cpuMode == CPUExecutionMode::IA32e) ? 32 : 8;
 
     for (uint8_t i = 0; i < maxMMRegs; i++) {
         RegValue value;
@@ -964,8 +865,8 @@ void printXSAVE(VirtualProcessor& vp, uint64_t xsaveAddress, uint32_t bases[16],
         return;
     }
     
-    auto cpuMode = getCPUMode(vp);
-    bool ia32e = cpuMode == CPUMode::IA32e;
+    auto cpuMode = vp.GetExecutionMode();
+    bool ia32e = cpuMode == CPUExecutionMode::IA32e;
 
     printFXSAVE(xsave.fxsave, ia32e, false, mmFormat, xmmFormat);
 
